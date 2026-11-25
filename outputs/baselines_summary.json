@@ -1,0 +1,273 @@
+{
+  "stages_run": [
+    "selection",
+    "calibration"
+  ],
+  "variant": "A",
+  "runtimes_sec": {
+    "ma_tuning_selection": 0.71,
+    "hw_trend_comparison_selection": 15.08,
+    "naive": 0.35,
+    "seasonal_naive": 0.32,
+    "moving_average": 0.33,
+    "holt_winters": 3.66
+  },
+  "selection": {
+    "naive": {
+      "overall": {
+        "wape": 26.228,
+        "bias": -7.905,
+        "n": 13440
+      },
+      "by_family": {
+        "BEVERAGES": {
+          "wape": 26.113,
+          "bias": -10.16,
+          "n": 1680
+        },
+        "DAIRY": {
+          "wape": 20.996,
+          "bias": -12.298,
+          "n": 1680
+        },
+        "BREAD/BAKERY": {
+          "wape": 20.496,
+          "bias": -9.098,
+          "n": 1680
+        },
+        "GROCERY I": {
+          "wape": 22.009,
+          "bias": -9.851,
+          "n": 1680
+        },
+        "FROZEN FOODS": {
+          "wape": 34.312,
+          "bias": -21.339,
+          "n": 1680
+        },
+        "CLEANING": {
+          "wape": 24.426,
+          "bias": -11.558,
+          "n": 1680
+        },
+        "PERSONAL CARE": {
+          "wape": 32.749,
+          "bias": -11.887,
+          "n": 1680
+        },
+        "PRODUCE": {
+          "wape": 36.637,
+          "bias": 3.378,
+          "n": 1680
+        }
+      },
+      "params": {}
+    },
+    "seasonal_naive": {
+      "overall": {
+        "wape": 17.274,
+        "bias": 0.879,
+        "n": 13440
+      },
+      "by_family": {
+        "BEVERAGES": {
+          "wape": 18.678,
+          "bias": 0.296,
+          "n": 1680
+        },
+        "DAIRY": {
+          "wape": 14.734,
+          "bias": 1.054,
+          "n": 1680
+        },
+        "BREAD/BAKERY": {
+          "wape": 16.272,
+          "bias": 2.268,
+          "n": 1680
+        },
+        "GROCERY I": {
+          "wape": 17.645,
+          "bias": 0.784,
+          "n": 1680
+        },
+        "FROZEN FOODS": {
+          "wape": 24.936,
+          "bias": -0.3,
+          "n": 1680
+        },
+        "CLEANING": {
+          "wape": 20.349,
+          "bias": 2.019,
+          "n": 1680
+        },
+        "PERSONAL CARE": {
+          "wape": 26.613,
+          "bias": 1.866,
+          "n": 1680
+        },
+        "PRODUCE": {
+          "wape": 12.882,
+          "bias": 0.803,
+          "n": 1680
+        }
+      },
+      "params": {}
+    },
+    "moving_average": {
+      "overall": {
+        "wape": 19.683,
+        "bias": 0.377,
+        "n": 13440
+      },
+      "by_family": {
+        "BEVERAGES": {
+          "wape": 20.809,
+          "bias": 0.27,
+          "n": 1680
+        },
+        "DAIRY": {
+          "wape": 16.954,
+          "bias": 1.022,
+          "n": 1680
+        },
+        "BREAD/BAKERY": {
+          "wape": 17.749,
+          "bias": 3.629,
+          "n": 1680
+        },
+        "GROCERY I": {
+          "wape": 17.436,
+          "bias": -0.704,
+          "n": 1680
+        },
+        "FROZEN FOODS": {
+          "wape": 29.46,
+          "bias": -0.187,
+          "n": 1680
+        },
+        "CLEANING": {
+          "wape": 20.226,
+          "bias": 1.397,
+          "n": 1680
+        },
+        "PERSONAL CARE": {
+          "wape": 25.708,
+          "bias": 1.063,
+          "n": 1680
+        },
+        "PRODUCE": {
+          "wape": 22.051,
+          "bias": 0.869,
+          "n": 1680
+        }
+      },
+      "params": {
+        "window": 28
+      }
+    },
+    "holt_winters": {
+      "overall": {
+        "wape": 14.726,
+        "bias": -0.493,
+        "n": 13440
+      },
+      "by_family": {
+        "BEVERAGES": {
+          "wape": 16.045,
+          "bias": -0.65,
+          "n": 1680
+        },
+        "DAIRY": {
+          "wape": 12.376,
+          "bias": -0.216,
+          "n": 1680
+        },
+        "BREAD/BAKERY": {
+          "wape": 13.6,
+          "bias": 1.792,
+          "n": 1680
+        },
+        "GROCERY I": {
+          "wape": 15.078,
+          "bias": -1.576,
+          "n": 1680
+        },
+        "FROZEN FOODS": {
+          "wape": 31.811,
+          "bias": 9.01,
+          "n": 1680
+        },
+        "CLEANING": {
+          "wape": 17.328,
+          "bias": 0.093,
+          "n": 1680
+        },
+        "PERSONAL CARE": {
+          "wape": 23.896,
+          "bias": -1.13,
+          "n": 1680
+        },
+        "PRODUCE": {
+          "wape": 10.161,
+          "bias": 0.245,
+          "n": 1680
+        }
+      },
+      "params": {
+        "trend": null
+      }
+    }
+  },
+  "moving_average": {
+    "candidates": {
+      "7": {
+        "wape": 20.778,
+        "bias": 0.879,
+        "n": 13440
+      },
+      "14": {
+        "wape": 20.248,
+        "bias": 0.795,
+        "n": 13440
+      },
+      "28": {
+        "wape": 19.683,
+        "bias": 0.377,
+        "n": 13440
+      },
+      "56": {
+        "wape": 20.677,
+        "bias": 2.805,
+        "n": 13440
+      }
+    },
+    "chosen_window": 28,
+    "brief_default": 28,
+    "criterion": "lowest overall selection WAPE"
+  },
+  "holt_winters": {
+    "trend_candidates": {
+      "none": {
+        "wape": 14.726,
+        "bias": -0.493,
+        "n": 13440,
+        "fallbacks": 0
+      },
+      "add_damped": {
+        "wape": 14.924,
+        "bias": -0.387,
+        "n": 13440,
+        "fallbacks": 0
+      }
+    },
+    "chosen_trend": "none",
+    "fit_days": 364,
+    "fallbacks_total": 0,
+    "fallbacks_by_stage": {
+      "selection": 0,
+      "calibration": 0
+    },
+    "fallback_events": [],
+    "fits_total": 1728
+  }
+}

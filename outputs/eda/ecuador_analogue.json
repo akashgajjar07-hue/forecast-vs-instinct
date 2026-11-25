@@ -1,0 +1,74 @@
+[
+ {
+  "family": "BEVERAGES",
+  "change_pct": 17.250133678559767,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 17.256597242159998,
+  "min_pct": -24.93864393478946,
+  "max_pct": 65.15767548048498
+ },
+ {
+  "family": "DAIRY",
+  "change_pct": 14.665680865548131,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 15.230539266413711,
+  "min_pct": -22.847700059597987,
+  "max_pct": 57.04824976348155
+ },
+ {
+  "family": "BREAD/BAKERY",
+  "change_pct": 9.487201132924593,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 8.243810702007636,
+  "min_pct": -23.882508659259805,
+  "max_pct": 51.36414295634479
+ },
+ {
+  "family": "GROCERY I",
+  "change_pct": 11.91001164187544,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 12.290284953079045,
+  "min_pct": -28.949600579725697,
+  "max_pct": 54.78029667374271
+ },
+ {
+  "family": "FROZEN FOODS",
+  "change_pct": 26.537935505712547,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 31.036460429101574,
+  "min_pct": -47.15937659292854,
+  "max_pct": 56.780024909056806
+ },
+ {
+  "family": "CLEANING",
+  "change_pct": 16.96146854552123,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 10.27487814985102,
+  "min_pct": -22.368037328667246,
+  "max_pct": 66.69557097118464
+ },
+ {
+  "family": "PERSONAL CARE",
+  "change_pct": 27.819323043460383,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 17.036479879654,
+  "min_pct": -35.01181235234559,
+  "max_pct": 88.71049763893934
+ },
+ {
+  "family": "PRODUCE",
+  "change_pct": 7.63090578947514,
+  "n_holidays": 19,
+  "window": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "median_pct": 6.52292848334457,
+  "min_pct": -20.530584177948484,
+  "max_pct": 44.223227004623354
+ }
+]
