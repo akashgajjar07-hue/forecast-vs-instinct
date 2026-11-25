@@ -38,7 +38,7 @@ What this project cannot tell you, and why. Each point says what the limitation 
 
 **Sundays under-covered.** Quantiles are pooled over all weekdays in a 7-day bucket, but Sunday is the peak day with the biggest errors. Holdout coverage at horizons 5 and 12 (both Sundays, since origins are Tuesdays) was 70.8 % and 67.2 %; calibration showed the same pattern (59.0 % and 61.2 % leave-one-origin-out). *Fix:* weekday-aware quantiles.
 
-**14-day totals.** The P10/P90 of a 14-day total shown in the S&OP table is the **sum of daily bounds**, which is conservative (too wide), not a true interval for the total. Only the chain total has its own band.
+**14-day totals.** The 14-day P10–P90 shown in the S&OP table and Exception Centre is a separately calibrated band for each series' 14-day total (relative-residual conformal on calibration windows only). It **under-covers**: 72.6 % of holdout 14-day totals fell inside it against the 80 % target (18.9 % below P10, 8.5 % above P90; calibration leave-one-origin-out estimate 77.3 %). It replaced the sum of daily bounds, which covered 94.1 % only because it was about twice as wide (42.1 % vs 20.5 % of the forecast). The band was designed after the holdout had been opened (prompted by the independent review); its quantiles still use calibration windows only and were frozen before holdout scoring.
 
 ## 4. Forecast Trust Index
 
@@ -71,3 +71,10 @@ What this project cannot tell you, and why. Each point says what the limitation 
 **The site does not retrain models.** Models are trained offline; the site loads exported results. The dashboard shows a fixed snapshot with the last actual on 2017-08-15.
 
 **Data licence.** Kaggle's rules page could not be read automatically during the build. No raw rows are published, only model outputs and aggregates, with citation. The owner should confirm the competition rules before sharing derived outputs (DECISIONS #4).
+
+
+## Future work
+
+- **Rolling recalibration of interval quantiles.** Both the daily and the 14-day bands use quantiles fitted once on 8 calibration origins. The 14-day band under-covered on the holdout (72.6 % vs 80 %) because the calibration-period under-forecast bias (−2.4 %) did not persist (holdout −0.5 %). A production version would refit the quantiles every week on the most recent completed windows (and could add weekday-specific daily quantiles to fix the Sunday under-coverage). The published bands are kept exactly as frozen.
+- **Event flags known in advance only.** Mask unforeseeable event flags (earthquake) for target dates after the origin when building training rows (independent review finding 13). This would mean retraining, so it was not done after the holdout.
+- **Promotion hard flag** based on a recent-window percentile instead of full history.

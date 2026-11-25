@@ -65,6 +65,7 @@ def main():
             "frozen_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         })
         print("froze", NAME)
+        q = pd.DataFrame(verify(NAME)["quantiles"])  # always score with exactly what was frozen
 
     # 3. holdout, scored once with the frozen quantiles
     hw = apply_window_band(ch[ch.stage == "holdout"], q)

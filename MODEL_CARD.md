@@ -39,7 +39,7 @@
 - **History at the origin:** lags 1/7/14/28; rolling mean and standard deviation over 7/14/28/56 days; share of open days; same-weekday last value and 4-week mean.
 - **Target-date calendar (known in advance):** weekday, month, day of month, holiday / national holiday / event / work day / payday flags, earthquake flag.
 - **Identity:** store, family, store type, cluster (categorical); horizon.
-- **Promotion:** count at the origin and its 7- and 28-day means (both variants); **planned count on the target date and its ratio to the recent level (variant A only)**.
+- **Promotion:** count at the origin and its 7- and 28-day means (both variants); **planned count on the target date and its ratio to the recent level (variant A only)**. **Caveat (independent review):** in every backtest, including the holdout, the "planned" count is the *recorded* `onpromotion` from train.csv, not a plan fixed in advance. Plans that changed or were executed differently are not modelled, so variant A is an **upper bound**: it assumes a perfectly executed promotion plan. Variant B (no future promotion information) is the lower reference; the gap between them is 0.18 pp on the holdout.
 - **Not used:** transactions (unknown in the future), oil price (tested and made accuracy worse).
 
 **Target:** sales ÷ (28-day mean at the origin + 1), L2 loss weighted by (28-day mean + 1). Predictions are multiplied back and clipped at 0.

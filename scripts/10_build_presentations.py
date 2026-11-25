@@ -417,7 +417,7 @@ def deck(N):
     kw = 440
     bb = N["best_base"]
     s.kpi(DM, 690, kw, 250, pct(N["champ_wape"]), "Holdout WAPE, LightGBM champion",
-          f"vs {pct(bb['wape'])} for the best baseline ({'Holt-Winters' if bb['model']=='holt_winters' else bb['model']}); {N['n_holdout_origins']} unseen weeks, scored once",
+          f"vs {pct(bb['wape'])} for the best baseline ({'Holt-Winters' if bb['model']=='holt_winters' else bb['model']}); {N['n_holdout_origins']} holdout origins, scored once",
           color=MINT, vs=60)
     s.kpi(DM + kw + 28, 690, kw, 250, f"{N['tv']['error_ratio_review_vs_accept']:.2f}×", "Review vs Accept error",
           "holdout WAPE of Review-band windows relative to Accept-band (Trust Index is a 0–100 index, not a probability)", color=REVIEW, vs=60)
@@ -513,7 +513,7 @@ def deck(N):
     s = new()
     names = {"lightgbm": "LightGBM", "holt_winters": "Holt-Winters", "seasonal_naive": "Seasonal naive", "moving_average": "Moving average (28d)", "naive": "Naive"}
     deck_header(s, "04", "The forecasting battle", "Machine learning won, but not everywhere",
-                f"On {N['n_holdout_origins']} holdout weeks it never saw ({fmt_d(hold_from)} – {fmt_d(hold_to)} 2017), LightGBM cut WAPE to "
+                f"On {N['n_holdout_origins']} weekly forecast origins (targets {fmt_d(hold_from)} – {fmt_d(hold_to)} 2017), each scored on days the model had not seen when it forecast, LightGBM cut WAPE to "
                 f"{pct(N['champ_wape'])} from {pct(bb['wape'])} for the best baseline: {N['err_cut']:.0f}% less absolute error.")
     rows = []
     for r in N["lb"]:
@@ -812,12 +812,13 @@ def carousel(N):
 
 # ----------------------------------------------------------------------------- post
 def post(N):
+    fmt_dd = lambda d: pd.Timestamp(d).strftime("%-d %b")
     bb = N["best_base"]; tv = N["tv"]; wb = N["wb"]
     txt = f"""Should a demand planner always trust an AI-generated forecast?
 
 I tested that question on {N['n_series']} real daily grocery series ({N['n_stores']} stores × {N['n_fam']} families, Corporación Favorita, Ecuador) with five forecasting models and a {N['horizon']}-day horizon.
 
-What I found on {N['n_holdout_origins']} holdout weeks the models never saw:
+What I found on {N['n_holdout_origins']} weekly forecast origins (targets {fmt_dd(N['target_windows']['holdout'][0])} – {fmt_dd(N['target_windows']['holdout'][1])} 2017), each scored on days the model had not seen when it forecast:
 
 • LightGBM cut error to {pct(N['champ_wape'])} WAPE from {pct(bb['wape'])} for the best simple baseline.
 • But a 28-day moving average still beat it on holiday days ({pct(N['hol_ma'])} vs {pct(N['hol_lgb'])}).

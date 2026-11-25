@@ -2,7 +2,7 @@ Should a demand planner always trust an AI-generated forecast?
 
 I tested that question on 96 real daily grocery series (12 stores × 8 families, Corporación Favorita, Ecuador) with five forecasting models and a 14-day horizon.
 
-What I found on 6 holdout weeks the models never saw:
+What I found on 6 weekly forecast origins (targets 28 Jun – 15 Aug 2017), each scored on days the model had not seen when it forecast:
 
 • LightGBM cut error to 12.6% WAPE from 17.2% for the best simple baseline.
 • But a 28-day moving average still beat it on holiday days (16.4% vs 17.1%).

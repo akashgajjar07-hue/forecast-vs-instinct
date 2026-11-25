@@ -1,4 +1,4 @@
-import { load, loadSeries, esc, fmtNum, fmtPct, fmtDate, addDays, plot, bandTrace, C, viewHead, options, setParams, famLabel, showEmpty, showLoading, pill, MODELS, MODEL_LABEL, CHALLENGER_COLORS, CHALLENGER_DASH, purgeCharts } from "../core.js";
+import { load, loadSeries, esc, fmtNum, fmtPct, fmtDate, addDays, plot, bandTrace, C, viewHead, options, setParams, famLabel, showEmpty, showLoading, pill, MODELS, MODEL_LABEL, MODEL_COLOR, MODEL_DASH, purgeCharts } from "../core.js";
 
 const SCALES = [-100, -50, 0, 50, 100];
 const CONTEXT_DAYS = 56;
@@ -75,7 +75,7 @@ export async function render(el, params, ctx) {
     ser = data;
     const origins = ser.holdout.map((h) => h.origin);
     if (state.origin !== "forward" && !origins.includes(state.origin)) state.origin = "forward";
-    originSel.innerHTML = options([["forward", `Forward · from ${fmtDate(addDays(ser.forward.origin, 1))} (no actuals yet)`], ...origins.map((o) => [o, `Holdout · origin ${fmtDate(o)}`])], state.origin);
+    originSel.innerHTML = options([["forward", `Forward · ${fmtDate(addDays(ser.forward.origin, 1))} (no actuals)`], ...origins.map((o) => [o, `Holdout · origin ${fmtDate(o)}`])], state.origin);
     drawAll();
   }
 
@@ -90,7 +90,7 @@ export async function render(el, params, ctx) {
     const ch = champion();
     const box = sel("#ws-models");
     const challengers = MODELS.filter((m) => m !== ch);
-    box.innerHTML = challengers.map((m, i) => `<button type="button" class="chip" data-model="${m}" aria-pressed="${state.models.has(m)}"><span class="swatch" style="background:${CHALLENGER_COLORS[i]}"></span> ${MODEL_LABEL[m]}</button>`).join("");
+    box.innerHTML = challengers.map((m) => `<button type="button" class="chip" data-model="${m}" aria-pressed="${state.models.has(m)}"><span class="swatch" style="background:${MODEL_COLOR[m]}"></span> ${MODEL_LABEL[m]}</button>`).join("");
     box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       const m = b.dataset.model;
       if (state.models.has(m)) state.models.delete(m); else state.models.add(m);
@@ -118,11 +118,12 @@ export async function render(el, params, ctx) {
     ];
     if (!fwd) traces.push({ x, y: win.rows.map((r) => r.actual), type: "scatter", mode: "lines+markers", name: "Actual (window)", line: { color: C.actual, width: 1.6 }, marker: { size: 4, color: C.actual }, showlegend: false });
     const challengers = MODELS.filter((m) => m !== ch);
-    challengers.forEach((m, i) => {
+    challengers.forEach((m) => {
       if (!state.models.has(m)) return;
-      traces.push({ x, y: win.rows.map((r) => r.models?.[m] ?? null), type: "scatter", mode: "lines", name: MODEL_LABEL[m], line: { color: CHALLENGER_COLORS[i], width: 1.6, dash: CHALLENGER_DASH[i] } });
+      // Same colour and dash per model as in the Model Arena.
+      traces.push({ x, y: win.rows.map((r) => r.models?.[m] ?? null), type: "scatter", mode: "lines", name: MODEL_LABEL[m], line: { color: MODEL_COLOR[m] || C.periwinkle, width: 1.6, dash: MODEL_DASH[m] || "dash" } });
     });
-    traces.push({ x, y: win.rows.map((r) => (fwd ? r.forecast : r.models?.[ch] ?? null)), type: "scatter", mode: "lines", name: `Champion · ${MODEL_LABEL[ch] || ch}`, line: { color: C.champion, width: 2.6 } });
+    traces.push({ x, y: win.rows.map((r) => (fwd ? r.forecast : r.models?.[ch] ?? null)), type: "scatter", mode: "lines", name: `Champion · ${MODEL_LABEL[ch] || ch}`, line: { color: MODEL_COLOR[ch] || C.champion, width: 2.6 } });
     if (fwd && state.scale !== 0) {
       const w = ser.whatif.rows.find((r) => r.scale_pct === state.scale);
       if (w) traces.push({ x, y: w.daily, type: "scatter", mode: "lines", name: `What-if promo ${state.scale > 0 ? "+" : ""}${state.scale} %`, line: { color: C.Monitor, width: 2, dash: "dot" } });
@@ -163,7 +164,7 @@ export async function render(el, params, ctx) {
     }
     box.innerHTML = `
       <h2>Champion & trust</h2>
-      <p class="small">Champion for ${esc(famLabel(ser.family))}: <b style="color:${C.champion}">${MODEL_LABEL[ch] || esc(ch)}</b></p>
+      <p class="small">Champion for ${esc(famLabel(ser.family))}: <b style="color:${MODEL_COLOR[ch] || C.champion}">${MODEL_LABEL[ch] || esc(ch)}</b></p>
       ${windowStats}
       <h3 style="margin-top:14px">Trust Index ${pill(t.band)}</h3>
       <div class="stat-row"><div><b>${fmtNum(t.score, 0)} / 100</b>latest score (ranking index, not a probability)</div></div>
@@ -174,8 +175,9 @@ export async function render(el, params, ctx) {
       y: comps.map((k) => COMP_LABEL[k]), x: comps.map((k) => t.components[k]), type: "bar", orientation: "h",
       marker: { color: comps.map((k) => (t.components[k] >= 80 ? C.Accept : t.components[k] >= 60 ? C.Monitor : C.Review)) },
       hovertemplate: "%{y}: %{x:.0f}<extra></extra>",
-    }], { xaxis: { range: [0, 100], title: { text: "component score" } }, yaxis: { autorange: "reversed" }, margin: { l: 96, t: 4, b: 36 }, showlegend: false },
-    `Trust Index components for store ${ser.store_nbr} ${famLabel(ser.family)}.`);
+      text: comps.map((k) => fmtNum(t.components[k], 0)), textposition: "outside", textfont: { color: C.text }, cliponaxis: false,
+    }], { xaxis: { range: [0, 110], title: { text: "component score (0–100)" } }, yaxis: { autorange: "reversed" }, margin: { l: 96, t: 4, b: 36 }, showlegend: false },
+    `Trust Index components for store ${ser.store_nbr} ${famLabel(ser.family)}: ${comps.map((k) => `${COMP_LABEL[k]} ${Math.round(t.components[k])}`).join(", ")}.`);
   }
 
   function drawWhatIf() {

@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, fmtCompact, plot, bandTrace, C, pill, shape, viewHref, slugOf, famLabel, MODEL_LABEL } from "../core.js";
+import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, fmtCompact, plot, bandTrace, C, pill, shape, viewHref, slugOf, famLabel, MODEL_LABEL, tableWrapAttrs } from "../core.js";
 
 export async function render(el) {
   const [meta, ov, index] = await Promise.all([load("meta.json"), load("overview.json"), load("series_index.json")]);
@@ -50,12 +50,13 @@ export async function render(el) {
 
   <section class="card">
     <div class="card-head"><h2>Top exceptions</h2><a href="#/exceptions">All exceptions →</a></div>
-    ${ov.top_exceptions.length ? `<div class="table-wrap"><table>
-      <thead><tr><th>Series</th><th class="n">Trust score</th><th>Band</th><th>Reason</th><th></th></tr></thead>
+    <p class="small muted">Review and Monitor series, ordered by priority (score shortfall × volume share)</p>
+    ${ov.top_exceptions.length ? `<div class="table-wrap" ${tableWrapAttrs("Top exceptions table, scrollable")}><table class="stack-sm">
+      <thead><tr><th>Series</th><th class="n">Trust score</th><th>Band</th><th>Reason</th><th><span class="sr-only">Open</span></th></tr></thead>
       <tbody>${ov.top_exceptions.map((x) => {
         const slug = slugOf(x.store_nbr, x.family);
         const link = slugs.has(slug) ? `<a href="${viewHref("workspace", { series: slug })}">Workspace</a>` : `<a href="${viewHref("exceptions", { series: x.series_id })}">Details</a>`;
-        return `<tr><td>Store ${x.store_nbr} · ${esc(famLabel(x.family))}</td><td class="n">${fmtNum(x.trust_score, 0)}</td><td>${pill(x.band)}</td><td>${esc(x.reason)}</td><td>${link}</td></tr>`;
+        return `<tr><td data-label="Series">Store ${x.store_nbr} · ${esc(famLabel(x.family))}</td><td class="n" data-label="Trust score">${fmtNum(x.trust_score, 0)}</td><td data-label="Band">${pill(x.band)}</td><td data-label="Reason" class="wrap">${esc(x.reason)}</td><td data-label="Open">${link}</td></tr>`;
       }).join("")}</tbody></table></div>` : '<div class="empty">No exceptions in the latest run.</div>'}
     <p class="caption">Trust score is a 0–100 ranking index of how far to rely on a forecast, not a probability.</p>
   </section>`;

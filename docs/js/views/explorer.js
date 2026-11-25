@@ -12,7 +12,8 @@ export async function render(el, params, ctx) {
   };
 
   el.innerHTML = `
-  ${viewHead("02", "Demand Explorer", "Observed sales patterns across 12 stores and 8 families: level, weekly rhythm, volatility, promotions and holidays.", "prism")}
+  ${viewHead("02", "Demand Explorer", "Observed sales patterns across 12 stores and 8 families: level, weekly rhythm, volatility, promotions and holidays.", "prism",
+    '<p class="view-subtitle">Observed sales, not unconstrained demand</p>')}
   <div class="controls" role="group" aria-label="Explorer filters">
     <label class="field"><span>Family</span><select id="ex-family">${options([["ALL", "All families"], ...families.map((f) => [f, famLabel(f)])], state.family)}</select></label>
     <label class="field"><span>Store</span><select id="ex-store">${options([["ALL", "All stores"], ...stores.map((s) => [s.store_nbr, `Store ${s.store_nbr} · ${s.city} (type ${s.type})`])], state.store)}</select></label>
@@ -20,8 +21,8 @@ export async function render(el, params, ctx) {
   </div>
   <section class="card"><div class="card-head"><h2 id="ex-weekly-title">Weekly sales</h2><span class="muted small">observed units per week</span></div><div id="ex-weekly" class="chart"></div></section>
   <div class="grid g2">
-    <section class="card"><h2>Day-of-week profile</h2><div id="ex-dow" class="chart short"></div><p class="caption">Index: mean sales on that weekday relative to the series mean (1.0 = average day). Monday first.</p></section>
-    <section class="card"><h2>Holiday effect</h2><div id="ex-hol" class="chart short"></div><p class="caption">Mean sales on national holidays vs normal days, per family. Observed difference, not a causal estimate.</p></section>
+    <section class="card"><h2>Day-of-week profile · chain level, all ${stores.length} stores</h2><div id="ex-dow" class="chart short"></div><p class="caption">Index: mean sales on that weekday relative to the series mean (1.0 = average day). Monday first.</p></section>
+    <section class="card"><h2>Holiday effect · chain level, all ${stores.length} stores</h2><div id="ex-hol" class="chart short"></div><p class="caption">Mean sales on national holidays vs normal days, per family. Observed difference, not a causal estimate.</p></section>
   </div>
   <section class="card"><div class="card-head"><h2>Volatility map</h2><span class="muted small">coefficient of variation of daily sales, store × family</span></div><div id="ex-vol" class="chart tall"></div><p class="caption">Higher CV = harder to forecast. The selected store or family is outlined.</p></section>
   <div class="grid g2">
@@ -75,14 +76,21 @@ export async function render(el, params, ctx) {
     showLoading(box, "Loading series…");
     const ser = await loadSeries(slug);
     if (!ctx.isCurrent() || fSel.value !== state.family || sSel.value !== state.store) return;
-    const x = [], y = [];
+    const x = [], y = [], note = [];
     const s = ser.history.sales;
-    for (let i = 0; i + 7 <= s.length; i += 7) {
-      const wkVals = s.slice(i, i + 7).filter((v) => v !== null);
+    // Align to Monday weeks like the chain series: first Monday on/after history.start.
+    const dow = new Date(ser.history.start + "T00:00:00Z").getUTCDay(); // 0 = Sunday
+    const off = (8 - dow) % 7;
+    for (let i = off; i + 7 <= s.length; i += 7) {
+      // Sum observed days only; closed or missing days are not imputed.
+      const wkVals = s.slice(i, i + 7).filter((v) => v !== null && v !== undefined);
+      const missing = 7 - wkVals.length;
       x.push(addDays(ser.history.start, i));
-      y.push(wkVals.length ? (wkVals.reduce((a, b) => a + b, 0) * 7) / wkVals.length : null);
+      y.push(wkVals.length ? wkVals.reduce((a, b) => a + b, 0) : null);
+      note.push(missing ? `<br>${missing} of 7 days missing or closed: observed days only, not imputed` : "");
     }
-    plot(box, [{ x, y, type: "scatter", mode: "lines", name: "Weekly sales", line: { color: C.actual, width: 1.6 } }],
+    plot(box, [{ x, y, type: "scatter", mode: "lines", name: "Weekly sales", line: { color: C.actual, width: 1.6 }, customdata: note,
+      hovertemplate: "week of %{x}: %{y:,.0f} units%{customdata}<extra></extra>" }],
       { yaxis: { rangemode: "tozero", title: { text: "units / week" } }, hovermode: "x unified" }, `${title.textContent}: weekly observed sales line chart.`);
   }
 
@@ -180,14 +188,14 @@ export async function render(el, params, ctx) {
         const vals = fams.map((f) => (pb[f][i] && pb[f][0].mean_sales ? (100 * pb[f][i].mean_sales) / pb[f][0].mean_sales : null)).filter((v) => v !== null);
         return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
       });
-      title.textContent = "Sales by promotion intensity · index across families";
+      title.textContent = `Sales by promotion intensity · index across families, chain level, all ${stores.length} stores`;
       plot(box, [{ x: bins, y, type: "bar", name: "Mean sales index", marker: { color: C.periwinkle }, hovertemplate: "%{x} items on promo: %{y:.0f}<extra></extra>" }],
         { xaxis: { title: { text: "items on promotion that day" }, type: "category" }, yaxis: { title: { text: `index (bin "${bins[0]}" = 100)` } } },
         "Mean sales index by number of items on promotion, averaged across families.");
       return;
     }
     const rows = pb[state.family] || [];
-    title.textContent = `Sales by promotion intensity · ${famLabel(state.family)}`;
+    title.textContent = `Sales by promotion intensity · ${famLabel(state.family)}, chain level, all ${stores.length} stores`;
     if (!rows.length) { showEmpty(box, "No promotion bins for this family."); return; }
     const x = rows.map((r) => r.bin);
     plot(box, [

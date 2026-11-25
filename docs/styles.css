@@ -153,7 +153,9 @@ main { flex: 1; padding: 26px clamp(16px, 3vw, 36px) 40px; min-width: 0; }
 }
 .view-head .text { position: relative; z-index: 2; max-width: 78ch; padding-right: 90px; }
 .view-head p { margin: 0; }
-.view-head .shape { width: 130px; height: 130px; right: -34px; top: -38px; }
+.view-head p.view-subtitle { margin-top: 6px; font-size: .82rem; font-weight: 600; color: var(--sky); }
+/* decorative torus/prism/coil sits behind the heading text (text and badge are z-index 2) */
+.view-head .shape { width: 130px; height: 130px; right: -34px; top: -38px; z-index: 0; }
 .ring-badge {
   flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head);
   font-weight: 700; font-size: .8rem; color: var(--text); border: 2px solid transparent; position: relative; z-index: 2;
@@ -217,7 +219,16 @@ input[type="range"] { width: 100%; accent-color: var(--c-champion); }
 .chart.short { height: 240px; }
 
 /* ---------- tables ---------- */
-.table-wrap { overflow-x: auto; max-width: 100%; border-radius: 12px; position: relative; }
+.table-wrap {
+  overflow-x: auto; max-width: 100%; border-radius: 12px; position: relative;
+  /* scroll affordance: soft mint edge shadows appear only while more columns are off-screen */
+  background:
+    linear-gradient(to right, var(--card) 30%, rgba(15, 42, 84, 0)) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--card) 30%, rgba(15, 42, 84, 0)) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(96, 240, 216, 0.35), rgba(96, 240, 216, 0)) left center / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(96, 240, 216, 0.35), rgba(96, 240, 216, 0)) right center / 12px 100% no-repeat scroll;
+}
+td.wrap { white-space: normal; min-width: 16ch; }
 table { width: 100%; border-collapse: collapse; font-size: .86rem; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); font-weight: 600; background: var(--panel-deep); position: sticky; top: 0; }
@@ -240,6 +251,8 @@ td select { padding: 5px 26px 5px 8px; font-size: .82rem; }
 /* ---------- notes / states ---------- */
 .note { border-left: 3px solid var(--sky); background: rgba(123, 189, 230, 0.08); padding: 10px 14px; border-radius: 0 10px 10px 0; font-size: .86rem; color: var(--text-2); }
 .note.warn { border-color: var(--monitor); background: rgba(245, 194, 107, 0.08); }
+.note.band-note { margin-top: 10px; }
+.note.band-note b { color: var(--monitor); }
 .note.bad { border-color: var(--review); background: rgba(255, 107, 138, 0.08); }
 .empty { display: grid; place-items: center; min-height: 160px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: 14px; padding: 20px; font-size: .9rem; }
 .error-card { border-color: var(--review); }
@@ -311,6 +324,28 @@ ul.clean li { margin-bottom: 6px; }
   .view-head { padding: 16px; }
   .hero .s-prism, .hero .s-orb { display: none; }
   .hero .s-torus { right: -80px; top: -70px; opacity: .8; }
+  /* view-head shape: smaller, further into the corner, faded so it never obscures the heading */
+  .view-head .shape { width: 96px; height: 96px; right: -40px; top: -44px; opacity: .45; }
+  .view-head .text { padding-right: 0; }
+  /* controls: every field takes the full row so selects (e.g. Workspace origin) and inputs never truncate or overflow */
+  .controls .field { flex: 1 1 100%; }
+  .controls .field select, .controls .field input[type="text"], .controls .field input[type="number"] { width: 100%; }
+  /* stacked card rows for wide tables (Overview top exceptions, S&OP consensus) */
+  table.stack-sm thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stack-sm, table.stack-sm tbody, table.stack-sm tr, table.stack-sm td { display: block; width: 100%; }
+  table.stack-sm tr { border: 1px solid var(--border); border-radius: 12px; padding: 4px 12px; margin-bottom: 10px; background: var(--panel); }
+  table.stack-sm td {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px;
+    white-space: normal; text-align: right; border-bottom: 1px dashed var(--border); padding: 7px 0; min-width: 0;
+  }
+  table.stack-sm td:last-child { border-bottom: 0; }
+  table.stack-sm td[data-label]::before {
+    content: attr(data-label); flex: 0 0 auto; text-align: left; font-size: .7rem; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--text-2);
+  }
+  table.stack-sm td.empty-cell { display: none; }
+  table.stack-sm td input[type="number"], table.stack-sm td select { width: auto; flex: 1 1 120px; max-width: 60%; }
+  table.stack-sm td .need { flex-basis: 100%; text-align: right; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

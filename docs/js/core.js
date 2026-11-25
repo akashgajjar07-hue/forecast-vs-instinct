@@ -128,6 +128,8 @@ export const C = {
 export const MODELS = ["naive", "seasonal_naive", "moving_average", "holt_winters", "lightgbm"];
 export const MODEL_LABEL = { naive: "Naive", seasonal_naive: "Seasonal naive", moving_average: "Moving average", holt_winters: "Holt-Winters", lightgbm: "LightGBM" };
 export const MODEL_COLOR = { lightgbm: C.champion, holt_winters: C.periwinkle, moving_average: C.skyData, seasonal_naive: C.orchid, naive: C.violet };
+// Dash pattern per model (same in the Arena horizon chart and the Workspace overlays).
+export const MODEL_DASH = { naive: "longdash", seasonal_naive: "dot", moving_average: "dashdot", holt_winters: "dash", lightgbm: "solid" };
 export const CHALLENGER_COLORS = [C.periwinkle, C.orchid, C.skyData, C.violet];
 export const CHALLENGER_DASH = ["dash", "dot", "dashdot", "longdash"];
 export const BANDS = ["Review", "Monitor", "Accept"];
@@ -254,4 +256,34 @@ export function shape(kind, cls = "") {
 export function viewHead(num, title, lede, kind = "torus", extra = "") {
   return `<header class="view-head">${shape(kind)}<span class="ring-badge" aria-hidden="true">${num}</span>
     <div class="text"><h1 tabindex="-1">${esc(title)}</h1><p>${lede}</p>${extra}</div></header>`;
+}
+
+// ---------- 14-day total interval (intervals.json → window_band, optional) ----------
+export const WINDOW_BAND_LABEL = "14-day total P10–P90 (calibrated on 14-day totals)";
+const asPct = (x) => (typeof x === "number" && Number.isFinite(x) ? (Math.abs(x) <= 1 ? x * 100 : x) : null);
+export function windowBandCaption(wb) {
+  if (!wb || typeof wb !== "object") return "";
+  const cov = asPct(wb.holdout_coverage);
+  if (cov === null) return "";
+  const lvl = asPct(wb.level);
+  return `14-day total P10–P90: holdout coverage ${fmtPct(cov, 1)} vs ${fmtPct(lvl === null ? 80 : lvl, 0)} target (empirical target, not a guarantee)`;
+}
+// Fill `el` with an amber note (headline + window_band.explanation) once intervals.json is available;
+// leave it hidden if the file or the field is missing. Display only: the frozen band itself is never altered.
+export function fillWindowBandCaption(el) {
+  if (!el) return;
+  load("intervals.json").then((iv) => {
+    const wb = iv && iv.window_band;
+    const head = windowBandCaption(wb);
+    if (!head || !el.isConnected) return;
+    const expl = typeof wb.explanation === "string" && wb.explanation.trim() ? ` ${esc(wb.explanation.trim())}` : "";
+    el.innerHTML = `<b>${esc(head)}.</b>${expl}`;
+    el.classList.add("note", "warn", "small", "band-note");
+    el.classList.remove("caption");
+    el.hidden = false;
+  }).catch(() => {});
+}
+// Accessible, keyboard-scrollable wrapper attributes for horizontally scrolling tables.
+export function tableWrapAttrs(label) {
+  return `tabindex="0" role="region" aria-label="${esc(label)}"`;
 }

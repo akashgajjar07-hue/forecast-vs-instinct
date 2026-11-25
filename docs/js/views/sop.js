@@ -1,10 +1,16 @@
-import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, addDays, viewHead, options, setParams, famLabel, pill, storeGet, storeSet, storeDel, BANDS } from "../core.js";
+import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, addDays, viewHead, options, setParams, famLabel, pill, storeGet, storeSet, storeDel, BANDS, WINDOW_BAND_LABEL, fillWindowBandCaption, tableWrapAttrs } from "../core.js";
 
 const USER_KEY = "fvi.sop.user";
 
 export function csvCell(v) {
   const s = v === null || v === undefined ? "" : String(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+// Text fields only: neutralise spreadsheet formula injection (=, +, -, @, tab, CR) with a leading quote.
+// Numeric quantities are passed through csvCell directly so they stay numeric.
+export function csvText(v) {
+  const s = v === null || v === undefined ? "" : String(v);
+  return csvCell(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s);
 }
 const q2 = (x) => (x === null || x === undefined || !Number.isFinite(x) ? "" : String(Math.round(x * 100) / 100));
 
@@ -38,7 +44,7 @@ export async function render(el, params) {
       <div><h3>Top risks</h3>${list(s.top_risks)}</div>
       <div><h3>Persistent bias</h3>${list(s.persistent_bias)}</div>
       <div><h3>Review queue</h3>${list(s.review_queue)}</div>
-      <div><h3>Promotion opportunities</h3>${list(s.promo_opportunities)}</div>
+      <div><h3>Promotion notes (associations, not causal)</h3>${list(s.promo_opportunities)}</div>
       <div class="span2"><h3>Discussion points for the meeting</h3><ol class="clean">${s.discussion_points.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
     </div>
   </section>
@@ -53,8 +59,9 @@ export async function render(el, params) {
   <section class="card">
     <div class="card-head"><h2>Consensus table</h2><span class="muted small" id="sp-count"></span></div>
     <p class="note small" id="sp-storage" ${storageOk ? "hidden" : ""}>Browser storage is unavailable, so overrides last only while this page is open. Export before leaving.</p>
-    <div class="table-wrap scroll-y" id="sp-table"></div>
+    <div class="table-wrap scroll-y" id="sp-table" ${tableWrapAttrs("S&OP consensus table, scrollable")}></div>
     <p class="caption">Quantities are 14-day totals in units. Final = override if entered, otherwise the statistical (champion) forecast. Overrides are saved in this browser only. The CSV has one row per series for the 14-day bucket, dated at the horizon start.</p>
+    <p class="caption" id="sp-wb" hidden></p>
   </section>
   <section class="card">
     <div class="card-head"><h2>Forecast value added</h2><span class="hyp-badge">Simulated</span></div>
@@ -98,17 +105,17 @@ export async function render(el, params) {
     const box = sel("#sp-table");
     if (!rows.length) { box.innerHTML = '<div class="empty" role="status">No series match these filters.</div>'; sel("#sp-count").textContent = "0 series"; return; }
     const reasonOpts = (cur) => options([["", "Select reason…"], ...sop.reason_codes.map((c) => [c, c])], cur || "");
-    box.innerHTML = `<table><thead><tr><th>Store</th><th>Family</th><th class="n">Statistical</th><th class="n">Interval P10–P90</th><th>Trust</th><th class="n">Planner override</th><th>Reason code</th><th class="n">Final consensus</th></tr></thead><tbody>
+    box.innerHTML = `<table class="stack-sm"><thead><tr><th>Store</th><th>Family</th><th class="n">Statistical</th><th class="n">${WINDOW_BAND_LABEL}</th><th>Trust</th><th class="n">Planner override</th><th>Reason code</th><th class="n">Final consensus</th></tr></thead><tbody>
       ${rows.map((r, i) => {
         const o = ov[r.series_id] || {};
         const id = `sp-o-${i}`;
-        return `<tr data-sid="${esc(r.series_id)}"><td>${r.store_nbr}</td><td>${esc(famLabel(r.family))}</td><td class="n">${fmtNum(r.stat_forecast)}</td><td class="n">${fmtNum(r.p10)} – ${fmtNum(r.p90)}</td>
-          <td>${pill(r.trust_band)} <span class="muted small num">${fmtNum(r.trust_score, 0)}</span></td>
-          <td class="n"><label class="sr-only" for="${id}">Override for store ${r.store_nbr} ${esc(famLabel(r.family))}</label><input type="number" min="0" step="1" id="${id}" class="ov-qty" value="${Number.isFinite(o.qty) ? o.qty : ""}" placeholder="–"></td>
-          <td><label class="sr-only" for="${id}-r">Reason for store ${r.store_nbr} ${esc(famLabel(r.family))}</label><select id="${id}-r" class="ov-reason">${reasonOpts(o.reason)}</select><span class="flag small need" ${Number.isFinite(o.qty) && !o.reason ? "" : "hidden"}>reason needed</span></td>
-          <td class="n final">${fmtNum(finalOf(r))}</td></tr>`;
+        return `<tr data-sid="${esc(r.series_id)}"><td data-label="Store">${r.store_nbr}</td><td data-label="Family">${esc(famLabel(r.family))}</td><td class="n" data-label="Statistical">${fmtNum(r.stat_forecast)}</td><td class="n" data-label="14-day total P10–P90">${fmtNum(r.p10)} – ${fmtNum(r.p90)}</td>
+          <td data-label="Trust">${pill(r.trust_band)} <span class="muted small num">${fmtNum(r.trust_score, 0)}</span></td>
+          <td class="n" data-label="Planner override"><label class="sr-only" for="${id}">Override for store ${r.store_nbr} ${esc(famLabel(r.family))}</label><input type="number" min="0" step="1" id="${id}" class="ov-qty" value="${Number.isFinite(o.qty) ? o.qty : ""}" placeholder="–"></td>
+          <td data-label="Reason code"><label class="sr-only" for="${id}-r">Reason for store ${r.store_nbr} ${esc(famLabel(r.family))}</label><select id="${id}-r" class="ov-reason">${reasonOpts(o.reason)}</select><span class="flag small need" ${Number.isFinite(o.qty) && !o.reason ? "" : "hidden"}>reason needed</span></td>
+          <td class="n final" data-label="Final consensus">${fmtNum(finalOf(r))}</td></tr>`;
       }).join("")}
-      <tr><td colspan="2"><b>Total (filtered)</b></td><td class="n"><b id="sp-tot-stat"></b></td><td></td><td></td><td></td><td></td><td class="n"><b id="sp-tot-final"></b></td></tr>
+      <tr class="total-row"><td colspan="2"><b>Total (filtered)</b></td><td class="n" data-label="Statistical"><b id="sp-tot-stat"></b></td><td class="empty-cell"></td><td class="empty-cell"></td><td class="empty-cell"></td><td class="empty-cell"></td><td class="n" data-label="Final consensus"><b id="sp-tot-final"></b></td></tr>
     </tbody></table>`;
     updateTotals(rows);
     box.querySelectorAll("tr[data-sid]").forEach((tr) => {
@@ -153,7 +160,11 @@ export async function render(el, params) {
     const lines = ["date,location,product_family,statistical_qty,override_qty,final_qty,reason_code,user"];
     for (const r of rowsAll) {
       const o = ov[r.series_id] || {};
-      lines.push([horizonStart, `STORE_${r.store_nbr}`, r.family, q2(r.stat_forecast), Number.isFinite(o.qty) ? q2(o.qty) : "", q2(finalOf(r)), o.reason || "", user].map(csvCell).join(","));
+      lines.push([
+        csvCell(horizonStart), csvText(`STORE_${r.store_nbr}`), csvText(r.family),
+        csvCell(q2(r.stat_forecast)), csvCell(Number.isFinite(o.qty) ? q2(o.qty) : ""), csvCell(q2(finalOf(r))),
+        csvText(o.reason || ""), csvText(user),
+      ].join(","));
     }
     const blob = new Blob([lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -165,4 +176,5 @@ export async function render(el, params) {
   });
 
   drawTable();
+  fillWindowBandCaption(sel("#sp-wb"));
 }

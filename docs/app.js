@@ -23,6 +23,7 @@ export const ROUTES = [
 const main = document.getElementById("view");
 const navList = document.getElementById("nav-list");
 const menuBtn = document.getElementById("menu-btn");
+const srStatus = document.getElementById("sr-status");
 let renderToken = 0;
 let firstRender = true;
 
@@ -86,6 +87,7 @@ async function render() {
   }
   firstRender = false;
   main.setAttribute("data-ready", route.id);
+  if (srStatus) srStatus.textContent = `${route.title} loaded`;
 }
 
 window.addEventListener("hashchange", render);

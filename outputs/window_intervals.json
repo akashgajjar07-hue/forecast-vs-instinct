@@ -1,0 +1,57 @@
+{
+  "calibration_loo_coverage": 77.34375,
+  "fitted_on": "calibration origins only (8 origins x 96 series = 768 windows)",
+  "frozen_at": "2026-11-25T21:48:42+00:00",
+  "level": 0.8,
+  "method": "Relative-residual split-conformal band on each series' 14-day total: r = (A14 - F14) / F14 on complete calibration windows of the frozen champions; 0.10/0.90 quantiles per family; P10 = max(0, F14*(1+q_lo)), P90 = F14*(1+q_hi). Same method as the chain-total band.",
+  "quantiles": [
+    {
+      "family": "BEVERAGES",
+      "n": 96,
+      "q_hi": 0.142766,
+      "q_lo": -0.079865
+    },
+    {
+      "family": "BREAD/BAKERY",
+      "n": 96,
+      "q_hi": 0.109733,
+      "q_lo": -0.039697
+    },
+    {
+      "family": "CLEANING",
+      "n": 96,
+      "q_hi": 0.227132,
+      "q_lo": -0.116755
+    },
+    {
+      "family": "DAIRY",
+      "n": 96,
+      "q_hi": 0.059103,
+      "q_lo": -0.069434
+    },
+    {
+      "family": "FROZEN FOODS",
+      "n": 96,
+      "q_hi": 0.14472,
+      "q_lo": -0.134459
+    },
+    {
+      "family": "GROCERY I",
+      "n": 96,
+      "q_hi": 0.121919,
+      "q_lo": -0.028452
+    },
+    {
+      "family": "PERSONAL CARE",
+      "n": 96,
+      "q_hi": 0.137628,
+      "q_lo": -0.137347
+    },
+    {
+      "family": "PRODUCE",
+      "n": 96,
+      "q_hi": 0.05227,
+      "q_lo": -0.038907
+    }
+  ]
+}

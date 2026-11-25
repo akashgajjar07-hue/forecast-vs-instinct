@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty, pill, viewHref, slugOf, BANDS, purgeCharts } from "../core.js";
+import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty, pill, viewHref, slugOf, BANDS, purgeCharts, WINDOW_BAND_LABEL, fillWindowBandCaption, tableWrapAttrs } from "../core.js";
 
 const COMP = ["accuracy", "interval", "stability", "agreement", "completeness"];
 const COMP_LABEL = { accuracy: "Accuracy", interval: "Interval", stability: "Stability", agreement: "Agreement", completeness: "Completeness" };
@@ -27,7 +27,7 @@ export async function render(el, params) {
   <div class="grid g-2-1">
     <section class="card">
       <div class="card-head"><h2>Trust inbox</h2><span class="muted small" id="ex-count"></span></div>
-      <div class="table-wrap scroll-y" id="ex-table"></div>
+      <div class="table-wrap scroll-y" id="ex-table" ${tableWrapAttrs("Trust inbox table, scrollable")}></div>
       <p class="caption">Trust score: a 0–100 ranking index built from five components (weights below). It is not a probability that the forecast is right. Bands: Accept 80–100, Monitor 60–79, Review below 60 or any hard flag.</p>
     </section>
     <section class="card" id="ex-detail"></section>
@@ -92,8 +92,10 @@ export async function render(el, params) {
       <div id="ex-comp" class="chart short"></div>
       <h3>Hard-flag reasons</h3>
       ${r.hard_flags.length ? `<ul class="clean">${r.hard_flags.map((f) => `<li class="flag">${esc(f)}</li>`).join("")}</ul>` : '<p class="small muted">None. The band comes from the score alone.</p>'}
-      <p class="small">14-day forecast <b class="num">${fmtNum(r.forecast_14d)}</b> units, interval ${fmtNum(r.p10_14d)} – ${fmtNum(r.p90_14d)}.</p>
+      <p class="small">14-day forecast <b class="num">${fmtNum(r.forecast_14d)}</b> units; ${WINDOW_BAND_LABEL}: <span class="num">${fmtNum(r.p10_14d)} – ${fmtNum(r.p90_14d)}</span>.</p>
+      <p class="caption" id="ex-wb" hidden></p>
       ${slugs.has(slug) ? `<a class="btn sm" href="${viewHref("workspace", { series: slug })}">Open in Forecast Workspace →</a>` : '<p class="small muted">No per-series file published for this series.</p>'}`;
+    fillWindowBandCaption(box.querySelector("#ex-wb"));
     plot(box.querySelector("#ex-comp"), [{
       y: COMP.map((k) => COMP_LABEL[k]), x: COMP.map((k) => r.components[k]), type: "bar", orientation: "h", name: "Component score",
       marker: { color: COMP.map((k) => (r.components[k] >= 80 ? C.Accept : r.components[k] >= 60 ? C.Monitor : C.Review)) },

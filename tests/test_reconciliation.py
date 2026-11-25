@@ -93,6 +93,33 @@ def champ_rows(bt, champ, stage):
 
 
 # ---------------------------------------------------------------- overview KPIs
+def window_band_forward(ci):
+    """Independent recomputation of the 14-day-total band: frozen per-family relative quantiles
+    (outputs/window_intervals.json) applied to each series' 14-day champion forward sum."""
+    q = pd.DataFrame(O("window_intervals.json")["quantiles"]).set_index("family")
+    f = ci[ci["stage"] == "forward"]
+    s = f.groupby(["series_id", "family"])["forecast"].sum().reset_index().set_index("series_id")
+    s["p10"] = np.maximum(0.0, s["forecast"] * (1 + q.loc[s["family"], "q_lo"].to_numpy()))
+    s["p90"] = s["forecast"] * (1 + q.loc[s["family"], "q_hi"].to_numpy())
+    return s
+
+
+def test_window_band_holdout_coverage(ci):
+    """intervals.json window_band coverage recomputed from champion holdout rows + frozen quantiles."""
+    wb = J("intervals.json")["window_band"]
+    q = pd.DataFrame(O("window_intervals.json")["quantiles"]).set_index("family")
+    h = ci[ci["stage"] == "holdout"]
+    w = h.groupby(["series_id", "family", "origin"]).agg(F=("forecast", "sum"), A=("actual", "sum"),
+                                                         n=("actual", "count")).reset_index()
+    w = w[w["n"] == 14]
+    lo = np.maximum(0.0, w["F"] * (1 + q.loc[w["family"], "q_lo"].to_numpy()))
+    hi = w["F"] * (1 + q.loc[w["family"], "q_hi"].to_numpy())
+    cov = float(((w["A"] >= lo) & (w["A"] <= hi)).mean() * 100)
+    assert len(w) == wb["n_holdout_windows"] == 576
+    assert close(cov, wb["holdout_coverage"])
+    assert close(float(((hi - lo) / w["F"]).mean() * 100), wb["holdout_mean_width_pct"])
+
+
 def test_overview_kpis(bt, ci, ts, champ):
     k = J("overview.json")["kpis"]
     fwd = champ_rows(bt, champ, "forward")
@@ -124,7 +151,7 @@ def test_overview_outlook_and_lists(panel, ts, champ):
     for row in hist:
         day = panel[panel["date"] == pd.Timestamp(row["date"])]
         assert close(row["actual"], r(day["sales"].sum(), 1))
-    latest = ts[ts["origin"] == FWD].sort_values("priority", ascending=False).head(8)
+    latest = ts[(ts["origin"] == FWD) & ts["band"].isin(["Review", "Monitor"])].sort_values("priority", ascending=False).head(8)
     assert [x["series_id"] for x in ov["top_exceptions"]] == list(latest["series_id"])
     for x, (_, t) in zip(ov["top_exceptions"], latest.iterrows()):
         assert close(x["trust_score"], r(t["score"], 2)) and x["band"] == t["band"]
@@ -218,7 +245,7 @@ def test_trust(ts, ci):
     pub = pd.Series([x["band"] for x in t["latest"]]).value_counts().to_dict()
     assert pub == latest["band"].value_counts().to_dict()
     assert t["weights"] == O("trust_weights.json")["weights"]
-    sums = ci[ci["stage"] == "forward"].groupby("series_id")[["forecast", "p10", "p90"]].sum()
+    sums = window_band_forward(ci)
     for x in t["latest"]:
         s = sums.loc[x["series_id"]]
         assert close(x["forecast_14d"], r(s["forecast"], 2)) and close(x["p10_14d"], r(s["p10"], 2))
@@ -234,7 +261,7 @@ def test_sop_totals_and_fva(bt, ci, ts, champ):
     fwd = ci[ci["stage"] == "forward"]
     assert len(sop["rows"]) == 96
     assert close(sum(x["stat_forecast"] for x in sop["rows"]), fwd["forecast"].sum(), 96 * 0.005 + TOL)
-    sums = fwd.groupby("series_id")[["forecast", "p10", "p90"]].sum()
+    sums = window_band_forward(ci)
     for x in sop["rows"]:
         assert close(x["stat_forecast"], r(sums.loc[x["series_id"], "forecast"], 2))
         assert close(x["p10"], r(sums.loc[x["series_id"], "p10"], 2))

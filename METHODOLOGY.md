@@ -78,7 +78,7 @@ Every model is retrained at every origin on all history up to that origin (an ex
 
 "Leakage" means a model uses information it would not have had on the forecast date. Five controls prevent it:
 
-1. **Masked view** (`src/backtest.py::masked_view`). A model never sees the raw panel. It gets a copy where every sale after T is NaN. In promotion variant B, the promotion count after T is NaN too. In variant A it is kept, because a retailer knows its agreed promotion calendar. This makes look-ahead structurally impossible rather than relying on careful feature code.
+1. **Masked view** (`src/backtest.py::masked_view`). A model never sees the raw panel. It gets a copy where every sale after T is NaN. In promotion variant B, the promotion count after T is NaN too. In variant A it is kept, because a retailer knows its agreed promotion calendar. **Caveat (independent review):** in every backtest, including the holdout, the "planned" count is the *recorded* `onpromotion` from train.csv, not a plan fixed in advance. Plans that changed or were executed differently are not modelled, so variant A is an **upper bound**: it assumes a perfectly executed promotion plan. Variant B (no future promotion information) is the lower reference; the gap between them is 0.18 pp on the holdout. This makes look-ahead structurally impossible rather than relying on careful feature code.
 2. **Self-filtering models.** Each baseline also filters its input to `date <= T` itself, so it stays leak-free even if handed an unmasked panel (tested).
 3. **Origin-relative features.** Every history feature is measured backwards from the origin, never from the target date. Target-date features are only things known in advance: the calendar and, in variant A, the planned promotion count.
 4. **Freeze hashes and the holdout guard** (`src/freeze.py`). `selection.json`, `intervals.json` and `trust_weights.json` are written with a SHA-256 hash file. `scripts/07_holdout_and_forward.py` verifies all three before running, refuses if any changed, and refuses a second run if `outputs/holdout_run.json` exists (except a `--rerun` reproducibility check, which must reproduce the logged digest and never overwrites the log).
@@ -315,7 +315,7 @@ JavaScript and Python give identical outputs on 8 shared test cases (`tests/js/s
 
 At the forward origin (2017-08-15), for each series:
 
-- `stat_forecast` = 14-day sum of the champion forecast; `p10` / `p90` = sums of the daily bounds (conservative: this is not an interval for the 14-day total).
+- `stat_forecast` = 14-day sum of the champion forecast; `p10` / `p90` = a separately calibrated band for the 14-day total (see §"14-day total band" below): holdout coverage 72.6 % vs 80 % target.
 - Trust score and band, as in section 7.
 
 The summary is generated deterministically from the numbers:
@@ -337,3 +337,26 @@ Result: 12.57 % → 13.02 %, **FVA −0.45 pp**, with 17 of 48 family-origin dec
 ## 12. Exploratory analysis
 
 Fourteen DuckDB SQL files in `sql/`, one per business question, run by `scripts/04_build_eda.py`, use history from 2015-06-01 to 2017-06-27 only (the holdout is never read; the PRODUCE gap check reads pre-window history on purpose). Results are in `outputs/eda/` and `notebooks/01_demand_intelligence.ipynb`. All are associations on observed sales. Exact definitions are at the top of each SQL file.
+
+
+## 14-day total band (added after the independent review)
+
+The S&OP table and Exception Centre show a P10–P90 for each series' **14-day total**. Summing the 14 daily P10s and P90s does
+not give an 80 % band for the total. The independent review measured 94.1 % holdout coverage for those summed bounds,
+because daily errors partly cancel over two weeks. They were replaced by a band calibrated directly on 14-day totals
+(`src/intervals.py`: `window_totals`, `fit_window_quantiles`, `apply_window_band`; script `scripts/07b_window_band.py`):
+
+- Relative residual per complete calibration window: r = (A₁₄ − F₁₄) / F₁₄, champion forecasts, 8 calibration origins × 96 series.
+- 10th and 90th percentiles of r per family (96 windows each); P10 = max(0, F₁₄·(1 + q₁₀)), P90 = F₁₄·(1 + q₉₀). Same method as the chain-total band.
+- The quantiles were frozen (`outputs/window_intervals.json` + `.sha256`) **before** any holdout window was scored, and the script always scores with the frozen file.
+
+| | Holdout coverage (target 80 %) | Mean width (% of 14-day forecast) |
+|---|---|---|
+| Calibrated 14-day band (published) | **72.6 %** (18.9 % below P10, 8.5 % above P90) | 20.5 % |
+| Sum of daily bounds (replaced) | 94.1 % | 42.1 % |
+
+Calibration leave-one-origin-out coverage was 77.3 %. The holdout shortfall comes mostly from totals falling **below** P10:
+on the calibration windows the champion under-forecast (bias −2.4 %), so the band was shifted upwards, while on the holdout the
+bias was close to zero (−0.5 %). With only 8 calibration windows per series, a shift in bias between periods moves 14-day
+coverage noticeably. **Disclosure:** this band was designed after the holdout had been opened; nothing about it was tuned on
+holdout results, and its coverage is reported as it came out.

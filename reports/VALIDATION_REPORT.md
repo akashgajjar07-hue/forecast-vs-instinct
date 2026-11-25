@@ -8,22 +8,18 @@ Data: Corporación Favorita (Ecuador), Kaggle. Recorded sales are **observed sal
 
 ## 1. Test suite status
 
-Run on 2026-11-26 by the documentation agent, in this repository's `.venv`:
+Final run on 2026-11-26 after the independent-review fixes (`reports/test_results.txt`, `reports/junit_local.xml`):
 
 | Command | Result |
 |---|---|
-| `pytest -m "not data"` (CI-safe, synthetic data) | **115 passed, 2 skipped**, 32 deselected |
-| `pytest -m data` (real panel and outputs) | **29 passed, 3 failed** (see 1.1) |
-| `node --test tests/js/scenario.test.mjs` | 7 pass (reported by the dashboard and export agents; not re-run here) |
+| `pytest` (all tests, Node on PATH so JS/Python scenario parity runs) | **151 passed, 0 failed, 0 skipped** |
+| `pytest -m "not data"` (CI-safe, synthetic fixtures) | **118 passed** |
+| `pytest -m data` (real panel and outputs, incl. dashboard reconciliation to 1e-6) | **33 passed** |
+| `node --test tests/js/scenario.test.mjs` | **7 passed, 0 failed** |
+| `scripts/playwright_check.py` (local and live URL, 8 views × 1440 / 390 px) | PASSED: no console errors, no failed requests, no horizontal scroll |
+| GitHub Actions CI (`.github/workflows/ci.yml`) | green (see `gh run list`) |
 
-### 1.1 Known failing data tests (stale assertions, not a model problem)
-
-Three `@pytest.mark.data` tests were written before the holdout was run and assert that the saved backtests contain **only** selection and calibration rows:
-
-- `tests/test_baselines.py::test_saved_real_baseline_backtests` → `assert not bt.stage.isin(["holdout", "forward"]).any()`
-- `tests/test_features_leakage.py::test_real_lightgbm_backtests[A]` and `[B]` → `assert set(bt["stage"]) == {"selection", "calibration"}`
-
-They now fail because `scripts/07_holdout_and_forward.py` correctly appended holdout and forward rows to the same parquet files, as designed (agent A's notes flagged that this assertion would need relaxing). The fix is to restrict those checks to `stage in {selection, calibration}` and add a separate check for the holdout/forward rows. **For the integrator:** this is outside the documentation agent's file scope and was not changed.
+Earlier, three data tests failed because they still asserted "no holdout rows" after the holdout had (correctly) been run. They now allow holdout/forward rows only if `outputs/holdout_run.json` exists.
 
 ---
 
@@ -161,6 +157,17 @@ Scaled split-conformal, P10–P90, quantiles per family × horizon bucket from 8
 
 ---
 
+### 7.x 14-day total band (S&OP / Exception Centre)
+
+| Band | Holdout coverage (target 80 %) | Below P10 / above P90 | Mean width (% of 14-day forecast) |
+|---|---|---|---|
+| Calibrated 14-day band (published; frozen `outputs/window_intervals.json`, sha256 `3da4fc84e848bb0a…`) | **72.6 %** | 18.9 % / 8.5 % | 20.5 % |
+| Sum of 14 daily bounds (replaced) | 94.1 % | | 42.1 % |
+
+576 complete holdout windows (96 series × 6 origins). Calibration leave-one-origin-out estimate: 77.3 %. By family: 61.1 % (BREAD/BAKERY) to 93.1 % (PERSONAL CARE).
+**Verdict: below target.** On the calibration windows the champion under-forecast (bias −2.4 %), so the band was centred above the forecast; on the holdout the bias was close to zero (−0.5 %), so 14-day totals fell below P10 more often. The band is kept exactly as frozen and was not adjusted with holdout results.
+Rolling recalibration is future work (LIMITATIONS.md). Disclosure: this band was designed after the holdout had been opened, in response to the independent review.
+
 ## 8. Trust Index validation
 
 Weights chosen on calibration by a rule stated in advance (METHODOLOGY §7.3), frozen, then tested once on 576 holdout windows (`outputs/holdout_results.json → trust_validation`).
@@ -202,10 +209,26 @@ Weights chosen on calibration by a rule stated in advance (METHODOLOGY §7.3), f
 
 ## 10. Independent review findings and fixes
 
-**Status: pending.**
+A fresh reviewer agent with no access to the build conversation audited the repository (brief: leakage, holdout misuse, metric errors, unreconciled numbers, overclaiming, broken filters, accessibility, mobile). It found **no leakage and no holdout misuse**, and every dashboard/README number it recomputed matched. Findings and fixes:
 
-*This section is reserved for the integrator / independent reviewer. List each finding, its severity, the fix made (with file and commit), and how the fix was verified. Known open items to consider: the three stale data tests in section 1.1; the promotion hard flag design; weekday-aware interval quantiles; the non-monotonic promotion what-if.*
-
-| # | Finding | Severity | Fix | Verified by |
+| # | Severity | Finding | Fix | Verified by |
 |---|---|---|---|---|
-| | pending | | | |
+| 1 | Major | 14-day "P10–P90" in S&OP / Exceptions was the sum of daily bounds (holdout coverage 94.1 %), labelled like an 80 % band | Replaced with a band calibrated on 14-day totals, calibration windows only, frozen before holdout scoring (`scripts/07b_window_band.py`). Holdout coverage **72.6 %**, reported as is with the bias-shift explanation on the dashboard, README, LIMITATIONS and here | `tests/test_reconciliation.py::test_window_band_holdout_coverage`, `test_trust`, `test_sop_totals_and_fva` |
+| 2 | Minor | Variant A uses recorded promo counts as the "known plan" | Documented as an upper bound (perfectly executed plan) in METHODOLOGY / MODEL_CARD | docs review |
+| 3 | Minor | "Custom" twice in the Scenario Lab event list | Added only if not exported | Playwright |
+| 4 | Minor | Overview "Top exceptions" included Accept series | Filtered to Review + Monitor by priority | reconciliation test |
+| 5 | Minor | Arena champion WAPE switched to variant B with the toggle | Always variant A (frozen champions) | Playwright |
+| 6 | Minor | Explorer charts ignored the store filter; store weeks imputed closed days, Sunday-aligned | Chain-level titles; no imputation; Monday weeks; missing-day hover | Playwright |
+| 7 | Minor | README claim about the source of ML gain was untested | Softened to "feature importances suggest (no ablation)" | docs review |
+| 8 | Minor | Validation report test status stale | Section 1 regenerated from the final run | this file |
+| 9 | Minor | Accessibility: unfocusable scroll regions, page-wide aria-live, chart label without values, mobile clipping | `tabindex`/`role=region`/labels on table wraps; dedicated live region; values on bars; stacked mobile rows ≤ 480 px | Playwright 390 px, screenshots |
+| 10 | Nit | "6 weeks of holdout it never saw" | "6 weekly forecast origins (targets 28 Jun – 15 Aug 2017), each scored on days the model had not seen" | dashboard, deck, post |
+| 11 | Nit | "Demand" wording; "Promotion opportunities" | Explorer subtitle "Observed sales, not unconstrained demand"; heading "Promotion notes (associations, not causal)" | docs review |
+| 12 | Nit | Holdout script used code defaults, not the hashed LightGBM params | Passes frozen params explicitly; `--rerun` **reproduced the holdout digest exactly** (`reports/reproducibility_rerun.txt`) | digest match |
+| 13 | Nit | Target-date quake/event flags give early training rows foresight | Not retrained (would change models after the holdout); documented in LIMITATIONS and future work | — |
+| 14 | Nit | Model colours differed between Arena and Workspace | Workspace uses the shared `MODEL_COLOR` / `MODEL_DASH` | Playwright screenshots |
+| 15 | Nit | Selection WAPE optimistic for the tuned model; in-sample interval component at early holdout origins; LOO overlap | Documented (holdout confirms the ranking) | — |
+| 16 | Nit | CSV export open to spreadsheet formula injection | Text fields starting with `= + - @` tab CR prefixed with `'` | code review |
+| 17 | Open | Kaggle rules never confirmed | **Owner action**: confirm on the competition Rules tab before promoting the site | — |
+
+UI fix details with file:line: `docs/agent_notes/review_fixes_ui.md`.

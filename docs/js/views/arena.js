@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, plot, C, viewHead, options, setParams, famLabel, showEmpty, MODELS, MODEL_LABEL, MODEL_COLOR } from "../core.js";
+import { load, esc, fmtNum, plot, C, viewHead, options, setParams, famLabel, showEmpty, MODELS, MODEL_LABEL, MODEL_COLOR, MODEL_DASH, tableWrapAttrs } from "../core.js";
 
 const SLICES = [
   ["overall", "Overall"], ["family", "Family"], ["store", "Store"], ["horizon", "Horizon (days ahead)"],
@@ -38,9 +38,9 @@ export async function render(el, params) {
     ${hasB ? `<label class="field"><span>LightGBM promo info</span><select id="ar-variant">${options([["A", "A · known promo plan"], ["B", "B · no future promo info"]], state.variant)}</select></label>` : ""}
   </div>
   <section class="card"><div class="card-head"><h2 id="ar-title">Scores</h2><span class="muted small" id="ar-sub"></span></div><div id="ar-chart" class="chart tall"></div></section>
-  <section class="card"><h2 id="ar-table-title">Table</h2><div class="table-wrap scroll-y" id="ar-table"></div><p class="caption">★ marks the best model in each row. Baselines do not use promotion information, so they appear once.</p></section>
+  <section class="card"><h2 id="ar-table-title">Table</h2><div class="table-wrap scroll-y" id="ar-table" ${tableWrapAttrs("Arena metrics by model and slice, scrollable")}></div><p class="caption">★ marks the best model in each row. Baselines do not use promotion information, so they appear once.</p></section>
   <div class="grid g2">
-    <section class="card"><h2>Champion per family</h2><div class="table-wrap" id="ar-champs"></div><p class="caption">Lowest selection WAPE, tie-break lower |bias|. Holdout column shows how the champion then did on the untouched test.</p></section>
+    <section class="card"><h2>Champion per family</h2><div class="table-wrap" id="ar-champs" ${tableWrapAttrs("Champion per family table, scrollable")}></div><p class="caption">Lowest selection WAPE, tie-break lower |bias|. Holdout column shows how the frozen champion (LightGBM variant A, known promo plan) then did on the untouched test, whatever the promo-info toggle above.</p></section>
     <section class="card"><h2>Value of promotion information</h2><div id="ar-var" class="chart"></div><p class="caption" id="ar-var-cap"></p></section>
   </div>
   ${arena.notes && arena.notes.length ? `<section class="card"><h2>Notes</h2><ul class="clean">${arena.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></section>` : ""}`;
@@ -90,7 +90,7 @@ export async function render(el, params) {
         x: xs.map((v) => sliceLabel(state.slice, v)), y: xs.map((v) => rows.find((r) => r.slice_value === v)?.[state.metric] ?? null),
         name: MODEL_LABEL[m], type: line ? "scatter" : "bar", mode: line ? "lines+markers" : undefined,
         marker: { color: MODEL_COLOR[m], symbol: ["circle", "square", "diamond", "triangle-up", "x"][i] },
-        line: line ? { color: MODEL_COLOR[m], width: m === "lightgbm" ? 2.6 : 1.6, dash: ["longdash", "dot", "dashdot", "dash", "solid"][i] } : undefined,
+        line: line ? { color: MODEL_COLOR[m], width: m === "lightgbm" ? 2.6 : 1.6, dash: MODEL_DASH[m] } : undefined,
         hovertemplate: `${MODEL_LABEL[m]} · %{x}: %{y:.2f}<extra></extra>`,
       };
     });
@@ -131,7 +131,7 @@ export async function render(el, params) {
     if (!ch.length) { box.innerHTML = '<div class="empty">No champions published.</div>'; return; }
     box.innerHTML = `<table><thead><tr><th>Family</th><th>Champion</th><th class="n">Selection WAPE</th><th class="n">Selection bias</th><th class="n">Holdout WAPE</th></tr></thead><tbody>
       ${ch.map(([f, c]) => {
-        const h = M.find((r) => r.stage === "holdout" && r.model === c.model && r.slice_type === "family" && r.slice_value === f && r.variant === (c.model === "lightgbm" ? state.variant : "A"));
+        const h = M.find((r) => r.stage === "holdout" && r.model === c.model && r.slice_type === "family" && r.slice_value === f && r.variant === "A"); // frozen champions are always variant A
         return `<tr><td>${esc(famLabel(f))}</td><td><span class="swatch" style="background:${MODEL_COLOR[c.model]}"></span> ${MODEL_LABEL[c.model] || esc(c.model)}</td><td class="n">${fmtNum(c.selection_wape, 1)} %</td><td class="n">${fmtNum(c.selection_bias, 1)} %</td><td class="n">${h ? fmtNum(h.wape, 1) + " %" : "n/a"}</td></tr>`;
       }).join("")}</tbody></table>`;
   }

@@ -1,4 +1,4 @@
-import { load, esc, fmtDate, fmtNum, fmtPct, addDays, dayDiff, viewHead, C, REPO } from "../core.js";
+import { load, esc, fmtDate, fmtNum, fmtPct, addDays, dayDiff, viewHead, C, REPO, tableWrapAttrs } from "../core.js";
 
 // OWNER: paste your LinkedIn profile URL here (left empty on purpose; the card shows a placeholder until filled).
 const LINKEDIN_URL = "";
@@ -73,7 +73,7 @@ export async function render(el) {
   ${viewHead("08", "Methodology & Limitations", "How the numbers were made, what was done to stop the future leaking into the past, and what this project cannot tell you.", "prism")}
   <section class="card"><h2>Pipeline</h2><div class="steps">${steps.map(([t, d], i) => `<div class="step"><span class="ring-badge sm" aria-hidden="true">${String(i + 1).padStart(2, "0")}</span><div><h3>${t}</h3><p>${esc(d)}</p></div></div>`).join("")}</div></section>
   <section class="card"><div class="card-head"><h2>Split calendar</h2><span class="muted small">origin = end of day T, targets T+1 … T+14</span></div>
-    <div class="table-wrap"><div style="min-width:640px">${timeline(meta)}</div></div></section>
+    <div class="table-wrap" ${tableWrapAttrs("Validation timeline, scrollable")}><div style="min-width:640px">${timeline(meta)}</div></div></section>
   <div class="grid g2">
     <section class="card"><h2>Leakage controls</h2><ul class="clean">
       <li>Models receive a masked copy of the data: sales after the origin are blanked, and for promo variant B so are future promotions.</li>
@@ -94,7 +94,7 @@ export async function render(el) {
       ${trust ? `<p class="small muted">Trust bands: ${trust.bands.map((b) => `${esc(b.band)} ≥ ${fmtNum(b.min)}`).join(", ")}; any hard flag forces Review.</p>` : ""}
     </section>
   </div>
-  <section class="card"><h2>Data caveats</h2><ul class="clean">${meta.caveats.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+  <section class="card"><h2>Data caveats and limitations</h2><ul class="clean">${meta.caveats.map((c) => `<li>${esc(c)}</li>`).join("")}${intervals.window_band && typeof intervals.window_band.explanation === "string" && intervals.window_band.explanation.trim() ? `<li><b>14-day total interval:</b> ${esc(intervals.window_band.explanation)}</li>` : ""}</ul>
     <p class="small muted">Citation: ${esc(meta.citation)}</p><p class="small muted">Results generated ${esc(meta.generated_at)}.</p></section>
   <div class="grid g2">
     <section class="card"><h2>Project documents</h2><p class="small">Full write-ups live in the repository.</p>

@@ -125,8 +125,11 @@ Every daily forecast has an 80 % prediction interval (P10 to P90), built by **sc
 | Coverage on Sundays (horizons 5 and 12) | 70.8 % and 67.2 %: **Sundays are under-covered** |
 | Average band width | 615.6 units per series-day, 37.3 % of the forecast |
 | Chain total (all 96 series, own band) | 83.3 % coverage, width 15.9 % of the forecast |
+| **14-day total per series** (S&OP band, own calibration) | **72.6 %** (target 80 %): 18.9 % below P10, 8.5 % above P90; width 20.5 % of the 14-day forecast |
 
 **So: honest overall, not honest everywhere.** The overall number is right on target, but BEVERAGES, BREAD/BAKERY and CLEANING bands were too narrow, GROCERY I, PERSONAL CARE and DAIRY bands too wide, and Sunday bands too narrow, because one quantile is shared by all seven weekdays. The intervals are empirical targets, not guarantees.
+
+**The 14-day band in the S&OP table misses its target.** Planners order on 14-day totals, so each series also gets a band calibrated directly on its 14-day total (8 calibration origins, quantiles per family, frozen with a hash before holdout scoring). On the holdout it held **72.6 %** of 14-day totals against the 80 % target (calibration leave-one-origin-out estimate 77.3 %; by family 61.1 % (BREAD/BAKERY) to 93.1 % (PERSONAL CARE)). On the calibration windows the champion under-forecast (bias −2.4 %), so the band was centred above the forecast; on the holdout the bias was close to zero (−0.5 %), so 14-day totals fell below P10 more often. The band is kept exactly as frozen. Rolling recalibration on the most recent windows is listed as future work. It replaced the original display, the sum of 14 daily bounds, which covered 94.1 % only because it was about twice as wide (42.1 % vs 20.5 % of the forecast). That fix came from the independent review and was designed after the holdout had been opened; it was not tuned on holdout results.
 
 ### Q5. Can we tell in advance which forecasts to trust?
 
@@ -167,8 +170,8 @@ The last actual date is 2017-08-15. The pipeline produces a forward forecast for
 
 1. **ML beats simple methods on average, by a meaningful margin.** Holdout WAPE 12.57 % vs 17.23 % for Holt-Winters. The win held in every family and every horizon, and on 83 of 96 series.
 2. **Simple methods are not dead.** Holt-Winters won 10 series, the moving average won on holiday days and was second best on weekly totals.
-3. **The promo calendar helps only a little** (0.16–0.26 pp WAPE across the three stages). Most of the ML gain comes from pooling 96 series and knowing the calendar (weekday, day of month, holidays) in advance.
-4. **The 80 % intervals hit 80.3 % overall** but are too narrow on Sundays and for some families.
+3. **The promo calendar helps only a little** (0.16–0.26 pp WAPE across the three stages). Feature importances suggest (no ablation was run) that most of the ML gain comes from pooling 96 series and knowing the calendar (weekday, day of month, holidays) in advance.
+4. **The daily 80 % intervals hit 80.3 % overall** but are too narrow on Sundays and for some families. **The 14-day-total band hit only 72.6 %** because the calibration-period bias did not persist into the holdout.
 5. **The Trust Index ranks forecasts better than volatility alone** (−0.637 vs −0.442), but it is dominated by past accuracy and its promotion flag needs redesign.
 6. **Near-zero total bias can hide family bias** of −6.3 % to +4.0 %.
 
@@ -310,6 +313,7 @@ The full list is in [LIMITATIONS.md](LIMITATIONS.md). The most important ones:
 - **Short holdout:** 6 origins in June–August 2017. No December peak, so FROZEN FOODS' hardest season is untested.
 - **The Trust Index is mostly past accuracy**, its promo flag fired on easier windows, and completeness was constant.
 - **Intervals under-cover Sundays** and some families.
+- **The 14-day S&OP band under-covers: 72.6 % vs 80 %** (bias shift between calibration and holdout). Kept as frozen; rolling recalibration is future work.
 - **The FVA figure is a simulated rule**, not real planner performance.
 - **The Excel formulas were checked by a Python evaluator**, not by Excel itself.
 

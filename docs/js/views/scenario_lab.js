@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty } from "../core.js";
+import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty, tableWrapAttrs } from "../core.js";
 import { runScenario, SCENARIOS, DEFAULT_WEIGHTS } from "../../scenario.js";
 
 const LABEL = { low: "Low", base: "Base", high: "High" };
@@ -6,7 +6,7 @@ const DEFAULTS = { lead: 14, days: 28, cu: 3, co: 1 };
 
 export async function render(el, params) {
   const sc = await load("scenario.json");
-  const events = [...sc.events, { id: "custom", label: "Custom", low: 0, base: 0, high: 0 }];
+  const events = sc.events.some((e) => e.id === "custom") ? [...sc.events] : [...sc.events, { id: "custom", label: "Custom", low: 0, base: 0, high: 0 }];
   const fams = sc.families.map((f) => f.family);
   const famRow = (f) => sc.families.find((x) => x.family === f);
   const state = {
@@ -42,12 +42,12 @@ export async function render(el, params) {
       <div class="range-cards" id="sl-range"></div>
       <div class="grid g2" style="margin-top:14px">
         <div id="sl-chart" class="chart short"></div>
-        <div class="table-wrap" id="sl-pos"></div>
+        <div class="table-wrap" id="sl-pos" ${tableWrapAttrs("Hypothetical supply position by outcome, scrollable")}></div>
       </div>
     </div>
     <div class="card">
       <div class="card-head"><h2>Cost of each plan</h2><span class="muted small" id="sl-cr"></span></div>
-      <div class="table-wrap" id="sl-cost"></div>
+      <div class="table-wrap" id="sl-cost" ${tableWrapAttrs("Hypothetical cost of each plan, scrollable")}></div>
       <p class="caption">cost(plan, outcome) = under-cost × units short + over-cost × units left over. Expected cost uses weights low/base/high = ${DEFAULT_WEIGHTS.low * 100}/${DEFAULT_WEIGHTS.base * 100}/${DEFAULT_WEIGHTS.high * 100} %. Max regret = worst gap to the best plan for that outcome.</p>
     </div>
     <div class="card">

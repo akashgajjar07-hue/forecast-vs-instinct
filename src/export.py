@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from .freeze import verify
 from . import metrics as M
 from .backtest import evaluable, masked_view
 from .runner import load_backtests
@@ -66,6 +67,11 @@ def rnd(x, nd: int = 2):
 
 def slug(store_nbr: int, family: str) -> str:
     return f"{int(store_nbr)}_{re.sub(r'[^a-z0-9]+', '-', family.lower()).strip('-')}"
+
+
+def fmt_d(d) -> str:
+    """'2017-06-28' -> '28 Jun 2017'."""
+    return pd.Timestamp(d).strftime("%-d %b %Y")
 
 
 def iso(d) -> str:
@@ -125,6 +131,8 @@ def load_inputs() -> dict:
         "analogue": read_json(OUT / "eda" / "ecuador_analogue.json"),
         "scope": read_json(C.CONFIG / "scope.json"),
         "cal": read_json(C.CONFIG / "split_calendar.json"),
+        "window_intervals": verify("window_intervals"),
+        "window_band": read_json(OUT / "window_band_results.json"),
     }
 
 
@@ -230,6 +238,43 @@ def build_intervals(inp) -> dict:
                            for k, g in h.groupby("horizon")],
         },
         "width_unit": "units per day (mean of P90 − P10 over open holdout days)",
+        "window_band": build_window_band(inp),
+    }
+
+
+def champ_bias(inp, stage) -> float:
+    ch = inp["bt"][(inp["bt"]["stage"] == stage) & (inp["bt"]["variant"] == "A")]
+    m = {f: c["model"] for f, c in inp["selection"]["champions"].items()}
+    ch = evaluable(ch[ch["model"] == ch["family"].map(m)])
+    return float(M.bias(ch["actual"], ch["forecast"]))
+
+
+def build_window_band(inp) -> dict:
+    wq, wb = inp["window_intervals"], inp["window_band"]
+    return {
+        "method": wq["method"],
+        "level": float(wq["level"]) * 100 if wq["level"] <= 1 else float(wq["level"]),
+        "fitted_on": wq["fitted_on"],
+        "calibration_loo_coverage": float(wq["calibration_loo_coverage"]),
+        "holdout_coverage": float(wb["holdout_coverage"]),
+        "holdout_mean_width_pct": float(wb["holdout_mean_width_pct"]),
+        "holdout_below_p10_pct": float(wb["holdout_below_p10_pct"]),
+        "holdout_above_p90_pct": float(wb["holdout_above_p90_pct"]),
+        "n_holdout_windows": int(wb["n_holdout_windows"]),
+        "by_family": wb["by_family"],
+        "replaced": {"what": "sum of the 14 daily P10 / P90 bounds",
+                     "holdout_coverage": float(wb["replaced_sum_of_daily_bounds"]["holdout_coverage"]),
+                     "holdout_mean_width_pct": float(wb["replaced_sum_of_daily_bounds"]["holdout_mean_width_pct"])},
+        "explanation": (f"Below target: {float(wb['holdout_coverage']):.1f} % of holdout 14-day totals fell inside the band "
+                        f"vs the 80 % target ({float(wb['holdout_below_p10_pct']):.1f} % below P10, "
+                        f"{float(wb['holdout_above_p90_pct']):.1f} % above P90). On the calibration windows the champion "
+                        f"under-forecast (bias {champ_bias(inp, 'calibration'):.1f} %), so the band was centred above the "
+                        f"forecast; on the holdout the bias was close to zero ({champ_bias(inp, 'holdout'):.1f} %), so totals "
+                        "fell below P10 more often. The band is kept exactly as frozen; rolling recalibration is future work."),
+        "future_work": "Rolling recalibration: refit the 14-day quantiles each week on the most recent completed windows.",
+        "disclosure": "Designed after the holdout had been opened (the independent review showed the summed daily "
+                      "bounds covered ~94 %). Quantiles use calibration windows only and were frozen with a hash "
+                      "before holdout windows were scored; nothing was tuned on holdout results.",
     }
 
 
@@ -247,9 +292,14 @@ def latest_trust(inp) -> pd.DataFrame:
     ts = inp["ts"]
     t = ts[ts["origin"] == FORWARD_ORIGIN].copy()
     assert len(t) == 96
-    f = forward_champion(inp).groupby("series_id")[["forecast", "p10", "p90"]].sum()
+    f = forward_champion(inp).groupby("series_id")[["forecast"]].sum()
     t = t.join(f, on="series_id")
     assert np.allclose(t["forecast"], t["forecast_14d"], rtol=0, atol=1e-6), "trust forecast_14d != champion forward sum"
+    # 14-day P10/P90 = separately calibrated 14-day-total band (scripts/07b_window_band.py), NOT summed daily bounds
+    wb = pd.DataFrame(inp["window_band"]["forward"]).set_index("series_id")
+    assert np.allclose(wb.loc[t["series_id"], "forecast_14d"].to_numpy(), t["forecast_14d"].to_numpy(), rtol=0, atol=1e-6)
+    t["p10"] = wb.loc[t["series_id"], "p10_14d"].to_numpy()
+    t["p90"] = wb.loc[t["series_id"], "p90_14d"].to_numpy()
     return t.sort_values("priority", ascending=False).reset_index(drop=True)
 
 
@@ -303,8 +353,9 @@ def build_trust(inp) -> dict:
         },
         "notes": [
             "The Trust score is a 0–100 ranking index of how far to rely on a forecast, not a probability.",
-            "p10_14d / p90_14d are sums of the daily P10 / P90 bounds over the 14 days. That is conservative: "
-            "the band for a 14-day total is narrower than the sum of daily bounds.",
+            "p10_14d / p90_14d: a separately calibrated P10–P90 band for each series' 14-day total (relative-residual "
+            "conformal on 14-day totals, fitted on calibration windows only; see intervals.json → window_band). "
+            "It replaced the sum of daily bounds after the independent review.",
             "priority = (100 − score) × the series' share of the total 14-day forecast at this origin.",
         ],
     }
@@ -409,7 +460,7 @@ def build_overview(inp, ivals, trust) -> dict:
     model_txt = (f"champion per family (LightGBM in {n_lgb} of {len(C.FAMILIES)}), "
                  f"{len(inp['cal']['stages']['holdout'])} holdout origins")
     top = []
-    for _, r in lt.head(8).iterrows():
+    for _, r in lt[lt["band"].isin(["Review", "Monitor"])].head(8).iterrows():
         top.append({"series_id": r["series_id"], "store_nbr": int(r["store_nbr"]), "family": r["family"],
                     "trust_score": rnd(r["score"], 2), "band": r["band"], "reason": reason_for(r, tw),
                     "priority": rnd(r["priority"], 4)})
@@ -445,7 +496,9 @@ def build_meta(inp, ivals) -> dict:
         {"label": "Interval coverage", "value": pct(cov),
          "detail": "of holdout actuals inside P10–P90; empirical target 80 %, not a guarantee"},
     ]
-    headline = (f"On {n_hold} weeks of holdout it never saw, LightGBM cut forecast error to {pct(cs['wape'])} WAPE from "
+    headline = (f"Across {n_hold} weekly forecast origins (targets {fmt_d(inp['cal']['target_windows']['holdout'][0])} – "
+                f"{fmt_d(inp['cal']['target_windows']['holdout'][1])}), each scored on days the model had not seen, "
+                f"LightGBM cut forecast error to {pct(cs['wape'])} WAPE from "
                 f"{pct(bb['wape'])} for the best baseline, and Review-band forecasts went on to show "
                 f"{tv['error_ratio_review_vs_accept']:.2f}× the error of Accept-band ones.")
     caveats = [
