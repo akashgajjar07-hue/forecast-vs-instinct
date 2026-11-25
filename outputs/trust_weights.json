@@ -1,0 +1,72 @@
+{
+  "agreement_models": {
+    "lightgbm_variant": "A",
+    "models": [
+      "naive",
+      "seasonal_naive",
+      "moving_average",
+      "holt_winters",
+      "lightgbm"
+    ]
+  },
+  "bands": [
+    {
+      "band": "Accept",
+      "min": 80.0
+    },
+    {
+      "band": "Monitor",
+      "min": 60.0
+    },
+    {
+      "band": "Review",
+      "min": 0.0
+    }
+  ],
+  "calibration_origins": [
+    "2017-04-25",
+    "2017-05-02",
+    "2017-05-09",
+    "2017-05-16",
+    "2017-05-23",
+    "2017-05-30",
+    "2017-06-06",
+    "2017-06-13"
+  ],
+  "choice_reason": "beats default by 0.136 in rho and on both calibration halves",
+  "choice_rule": "most negative Spearman(score, realised window WAPE) on calibration; non-default adopted only if it beats default by >= 0.03 and on both calibration halves",
+  "chosen": "grid:0.7/0.1/0.1/0.0/0.1",
+  "constant_components_on_calibration": [
+    "completeness"
+  ],
+  "constants": {
+    "agree_cap": 0.5,
+    "closure_mmdd": [
+      "12-25",
+      "01-01"
+    ],
+    "completeness_flag": 80.0,
+    "cov_target": 80.0,
+    "cov_tol": 40.0,
+    "cv_cap": 1.0,
+    "horizon": 14,
+    "lookback_days": 56,
+    "n_windows": 8,
+    "promo_quantile": 0.95,
+    "promo_window": 14,
+    "wape_cap": 50.0
+  },
+  "interval_quantile_source": {
+    "calibration": "fit_quantiles on SELECTION champion residuals",
+    "holdout_forward": "frozen calibration quantiles in outputs/intervals.json",
+    "intervals_sha256": "bfc2c7459b8a059169dee1a71c47f68d9dc635ad2eeaec03066cd8298b082853"
+  },
+  "threshold_note": "kept 80 / 60 (no band empty on calibration)",
+  "weights": {
+    "accuracy": 0.7,
+    "agreement": 0.0,
+    "completeness": 0.1,
+    "interval": 0.1,
+    "stability": 0.1
+  }
+}
