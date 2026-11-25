@@ -1,0 +1,10 @@
+[
+  {"name": "tie_broken_by_regret", "baseline": 1000, "pct_low": -10, "pct_base": 10, "pct_high": 30, "supply": 1100, "cost_under": 3, "cost_over": 1, "days_to_event": 21, "lead_time_days": 14},
+  {"name": "overstock_cheap_shortage", "baseline": 5000, "pct_low": 0, "pct_base": 15, "pct_high": 40, "supply": 9000, "cost_under": 1, "cost_over": 4, "days_to_event": 30, "lead_time_days": 10},
+  {"name": "late_order", "baseline": 2400.5, "pct_low": 5, "pct_base": 20, "pct_high": 45, "supply": 1000, "cost_under": 5, "cost_over": 1, "days_to_event": 5, "lead_time_days": 12},
+  {"name": "order_now", "baseline": 800, "pct_low": -20, "pct_base": 0, "pct_high": 20, "supply": 700, "cost_under": 2, "cost_over": 2, "days_to_event": 10, "lead_time_days": 8},
+  {"name": "zero_baseline", "baseline": 0, "pct_low": -10, "pct_base": 0, "pct_high": 10, "supply": 50, "cost_under": 1, "cost_over": 1, "days_to_event": 14, "lead_time_days": 7},
+  {"name": "negative_demand_clamped_and_unordered", "baseline": 1200, "pct_low": -150, "pct_base": -100, "pct_high": -120, "supply": 0, "cost_under": 0, "cost_over": 0, "days_to_event": 0, "lead_time_days": 0},
+  {"name": "matches_supply", "baseline": 1000, "pct_low": 0, "pct_base": 0, "pct_high": 0, "supply": 1000, "cost_under": 3, "cost_over": 1, "days_to_event": 20, "lead_time_days": 5},
+  {"name": "custom_weights", "baseline": 3000, "pct_low": -5, "pct_base": 10, "pct_high": 60, "supply": 3300, "cost_under": 4, "cost_over": 1, "days_to_event": 40, "lead_time_days": 21, "weights": {"low": 0.1, "base": 0.6, "high": 0.3}}
+]
