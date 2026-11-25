@@ -147,11 +147,14 @@ def test_real_lightgbm_backtests(variant):
     cal = load_split_calendar()
     assert list(bt.columns) == BACKTEST_COLUMNS
     assert set(bt["model"]) == {"lightgbm"} and set(bt["variant"]) == {variant}
-    assert set(bt["stage"]) == {"selection", "calibration"}
-    assert "holdout" not in set(bt["stage"])
-    assert bt["origin"].max() < pd.Timestamp(cal["stages"]["holdout"][0])
+    final = bt["stage"].isin(["holdout", "forward"])
+    # holdout/forward rows may exist only after the logged one-time holdout run
+    assert not final.any() or (C.OUTPUTS / "holdout_run.json").exists()
+    dev = bt[~final]
+    assert set(dev["stage"]) == {"selection", "calibration"}
+    assert dev["origin"].max() < pd.Timestamp(cal["stages"]["holdout"][0])
     exp = set(pd.to_datetime(cal["stages"]["selection"] + cal["stages"]["calibration"]))
-    assert set(bt["origin"]) == exp
+    assert set(dev["origin"]) == exp
     sizes = bt.groupby("origin").size()
     assert (sizes == 96 * 14).all()
     assert not bt.duplicated(["origin", "series_id", "horizon"]).any()

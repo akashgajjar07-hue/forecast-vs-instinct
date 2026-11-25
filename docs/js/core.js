@@ -141,11 +141,29 @@ function merge(a, b) {
   }
   return out;
 }
+// Replace a chart element with a fresh, empty copy instead of Plotly.purge(): purge deletes the
+// internal layout while Plotly may still have an auto-margin redraw queued, and that queued redraw
+// then throws (seen on slower networks). A detached old node lets the pending redraw finish harmlessly.
+// A caller may still hold a node that freshEl() replaced: resolve it again by id.
+export function live(el) {
+  return el && !el.isConnected && el.id ? document.getElementById(el.id) || el : el;
+}
+export function freshEl(el) {
+  el = live(el);
+  if (!el) return el;
+  const n = document.createElement(el.tagName);
+  for (const a of el.attributes) n.setAttribute(a.name, a.value);
+  n.classList.remove("js-plotly-plot");
+  n.removeAttribute("role");
+  n.removeAttribute("aria-label");
+  el.replaceWith(n);
+  return n;
+}
 export function plot(el, traces, layout = {}, label = "") {
+  el = live(el);
   if (!el) return;
   if (!el.classList.contains("js-plotly-plot") || el.querySelector(":scope > .empty, :scope > .loading")) {
-    window.Plotly.purge(el);
-    el.innerHTML = "";
+    el = freshEl(el);
   }
   if (label) {
     el.setAttribute("role", "img");
@@ -166,8 +184,8 @@ export function plot(el, traces, layout = {}, label = "") {
   window.Plotly.react(el, traces, JSON.parse(JSON.stringify(L)), { displayModeBar: false, responsive: true });
 }
 export function purgeCharts(root) {
-  if (!window.Plotly) return;
-  root.querySelectorAll(".js-plotly-plot").forEach((el) => window.Plotly.purge(el));
+  // Detach old charts (see freshEl); callers re-render the container's HTML afterwards.
+  root.querySelectorAll(".js-plotly-plot").forEach((el) => freshEl(el));
 }
 export function bandTrace(x, lo, hi, name = "P10–P90 band") {
   return [
@@ -184,15 +202,14 @@ export function empty(msg) {
   return `<div class="empty" role="status">${esc(msg)}</div>`;
 }
 export function showEmpty(el, msg) {
+  el = freshEl(el);
   if (!el) return;
-  if (window.Plotly) window.Plotly.purge(el);
-  el.classList.remove("js-plotly-plot");
-  el.removeAttribute("role");
-  el.removeAttribute("aria-label");
   el.innerHTML = empty(msg);
 }
 export function showLoading(el, msg = "Loading…") {
-  if (window.Plotly) window.Plotly.purge(el);
+  el = live(el);
+  if (!el) return;
+  if (el.classList.contains("js-plotly-plot")) el = freshEl(el);
   el.innerHTML = `<p class="loading">${esc(msg)}</p>`;
 }
 export function errorCard(err) {

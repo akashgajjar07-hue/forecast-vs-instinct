@@ -174,13 +174,16 @@ def test_saved_real_baseline_backtests():
         pytest.skip("baseline backtests not built (run scripts/02_run_baselines.py)")
     bt = load_backtests(models=names)
     assert set(bt.model) == set(names)
-    assert not bt.stage.isin(["holdout", "forward"]).any()
+    final = bt.stage.isin(["holdout", "forward"])
+    # holdout/forward rows may exist only after the logged one-time holdout run
+    assert not final.any() or (C.OUTPUTS / "holdout_run.json").exists()
     assert (bt.variant == "A").all()
     assert (bt.forecast >= 0).all() and bt.forecast.notna().all()
-    assert (bt.target_date <= pd.Timestamp("2017-06-27")).all()
+    assert (bt.loc[~final, "target_date"] <= pd.Timestamp("2017-06-27")).all()
     sizes = bt.groupby(["model", "origin"]).size()
     assert (sizes == 96 * 14).all()
-    assert bt.groupby("model").origin.nunique().eq(C.N_SELECTION + C.N_CALIBRATION).all()
+    n_final = C.N_HOLDOUT + 1 if final.any() else 0  # + forward origin
+    assert bt.groupby("model").origin.nunique().eq(C.N_SELECTION + C.N_CALIBRATION + n_final).all()
     keys = {m: set(map(tuple, g[["origin", "series_id", "horizon"]].to_numpy())) for m, g in bt.groupby("model")}
     ref = keys[names[0]]
     assert all(k == ref for k in keys.values())
