@@ -1,0 +1,412 @@
+{
+  "champions": {
+    "BEVERAGES": {
+      "model": "lightgbm",
+      "selection_bias": -2.3907119975952513,
+      "selection_wape": 13.80674197716293
+    },
+    "BREAD/BAKERY": {
+      "model": "lightgbm",
+      "selection_bias": 2.613293067423754,
+      "selection_wape": 11.582767728693517
+    },
+    "CLEANING": {
+      "model": "lightgbm",
+      "selection_bias": 0.4187060716790354,
+      "selection_wape": 12.76921548496796
+    },
+    "DAIRY": {
+      "model": "lightgbm",
+      "selection_bias": 1.1432153797726683,
+      "selection_wape": 10.633582891970045
+    },
+    "FROZEN FOODS": {
+      "model": "lightgbm",
+      "selection_bias": -0.10118864089425414,
+      "selection_wape": 20.49984219375583
+    },
+    "GROCERY I": {
+      "model": "lightgbm",
+      "selection_bias": -0.2771830035683913,
+      "selection_wape": 11.37937196199098
+    },
+    "PERSONAL CARE": {
+      "model": "lightgbm",
+      "selection_bias": -1.6302739316016588,
+      "selection_wape": 14.862018990028133
+    },
+    "PRODUCE": {
+      "model": "lightgbm",
+      "selection_bias": -0.28992777275010345,
+      "selection_wape": 9.5277301722144
+    }
+  },
+  "lightgbm_variant_B_selection": [
+    {
+      "bias": -2.8939,
+      "family": "BEVERAGES",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 14.2523
+    },
+    {
+      "bias": 2.5482,
+      "family": "BREAD/BAKERY",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 11.6006
+    },
+    {
+      "bias": 0.0126,
+      "family": "CLEANING",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 12.783
+    },
+    {
+      "bias": 0.8784,
+      "family": "DAIRY",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 11.0684
+    },
+    {
+      "bias": -1.0445,
+      "family": "FROZEN FOODS",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 19.8365
+    },
+    {
+      "bias": -1.7473,
+      "family": "GROCERY I",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 11.298
+    },
+    {
+      "bias": -1.7262,
+      "family": "PERSONAL CARE",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 15.0168
+    },
+    {
+      "bias": -0.1093,
+      "family": "PRODUCE",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 9.8074
+    }
+  ],
+  "model_params": {
+    "holt_winters": {
+      "damped": false,
+      "fit_days": 364,
+      "trend": null
+    },
+    "lightgbm": {
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "feature_fraction": 0.8,
+      "lambda_l2": 1.0,
+      "learning_rate": 0.05,
+      "min_data_in_leaf": 100,
+      "n_estimators": 400,
+      "num_leaves": 127,
+      "num_threads": 4,
+      "objective": "regression",
+      "origin_stride": 1,
+      "quake": "flag",
+      "target": "ratio",
+      "tweedie_variance_power": 1.2,
+      "use_oil": false
+    },
+    "moving_average": {
+      "window": 28
+    }
+  },
+  "rule": "Per family: lowest selection-backtest WAPE (ratio of sums, 10 origins x 12 stores x 14 days); tie (within 0.05 pp) -> lower |bias|. LightGBM competes with promo variant A (known promo plan).",
+  "selection_table": [
+    {
+      "bias": -0.6504,
+      "family": "BEVERAGES",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 16.0449
+    },
+    {
+      "bias": -2.3907,
+      "family": "BEVERAGES",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 13.8067
+    },
+    {
+      "bias": 0.2696,
+      "family": "BEVERAGES",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 20.8087
+    },
+    {
+      "bias": -10.1602,
+      "family": "BEVERAGES",
+      "model": "naive",
+      "n": 1680,
+      "wape": 26.1132
+    },
+    {
+      "bias": 0.296,
+      "family": "BEVERAGES",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 18.6782
+    },
+    {
+      "bias": 1.7919,
+      "family": "BREAD/BAKERY",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 13.6004
+    },
+    {
+      "bias": 2.6133,
+      "family": "BREAD/BAKERY",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 11.5828
+    },
+    {
+      "bias": 3.6293,
+      "family": "BREAD/BAKERY",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 17.7492
+    },
+    {
+      "bias": -9.0984,
+      "family": "BREAD/BAKERY",
+      "model": "naive",
+      "n": 1680,
+      "wape": 20.4961
+    },
+    {
+      "bias": 2.2683,
+      "family": "BREAD/BAKERY",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 16.2718
+    },
+    {
+      "bias": 0.0929,
+      "family": "CLEANING",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 17.3284
+    },
+    {
+      "bias": 0.4187,
+      "family": "CLEANING",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 12.7692
+    },
+    {
+      "bias": 1.3968,
+      "family": "CLEANING",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 20.226
+    },
+    {
+      "bias": -11.558,
+      "family": "CLEANING",
+      "model": "naive",
+      "n": 1680,
+      "wape": 24.4257
+    },
+    {
+      "bias": 2.0187,
+      "family": "CLEANING",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 20.349
+    },
+    {
+      "bias": -0.2163,
+      "family": "DAIRY",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 12.3762
+    },
+    {
+      "bias": 1.1432,
+      "family": "DAIRY",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 10.6336
+    },
+    {
+      "bias": 1.0222,
+      "family": "DAIRY",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 16.9542
+    },
+    {
+      "bias": -12.2978,
+      "family": "DAIRY",
+      "model": "naive",
+      "n": 1680,
+      "wape": 20.9961
+    },
+    {
+      "bias": 1.0545,
+      "family": "DAIRY",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 14.7338
+    },
+    {
+      "bias": 9.01,
+      "family": "FROZEN FOODS",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 31.8109
+    },
+    {
+      "bias": -0.1012,
+      "family": "FROZEN FOODS",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 20.4998
+    },
+    {
+      "bias": -0.187,
+      "family": "FROZEN FOODS",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 29.4601
+    },
+    {
+      "bias": -21.3385,
+      "family": "FROZEN FOODS",
+      "model": "naive",
+      "n": 1680,
+      "wape": 34.3121
+    },
+    {
+      "bias": -0.3003,
+      "family": "FROZEN FOODS",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 24.9355
+    },
+    {
+      "bias": -1.5764,
+      "family": "GROCERY I",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 15.0776
+    },
+    {
+      "bias": -0.2772,
+      "family": "GROCERY I",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 11.3794
+    },
+    {
+      "bias": -0.7043,
+      "family": "GROCERY I",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 17.4362
+    },
+    {
+      "bias": -9.8514,
+      "family": "GROCERY I",
+      "model": "naive",
+      "n": 1680,
+      "wape": 22.0092
+    },
+    {
+      "bias": 0.7837,
+      "family": "GROCERY I",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 17.6451
+    },
+    {
+      "bias": -1.1304,
+      "family": "PERSONAL CARE",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 23.8957
+    },
+    {
+      "bias": -1.6303,
+      "family": "PERSONAL CARE",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 14.862
+    },
+    {
+      "bias": 1.0634,
+      "family": "PERSONAL CARE",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 25.7078
+    },
+    {
+      "bias": -11.8874,
+      "family": "PERSONAL CARE",
+      "model": "naive",
+      "n": 1680,
+      "wape": 32.7486
+    },
+    {
+      "bias": 1.8657,
+      "family": "PERSONAL CARE",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 26.6129
+    },
+    {
+      "bias": 0.2455,
+      "family": "PRODUCE",
+      "model": "holt_winters",
+      "n": 1680,
+      "wape": 10.1608
+    },
+    {
+      "bias": -0.2899,
+      "family": "PRODUCE",
+      "model": "lightgbm",
+      "n": 1680,
+      "wape": 9.5277
+    },
+    {
+      "bias": 0.8693,
+      "family": "PRODUCE",
+      "model": "moving_average",
+      "n": 1680,
+      "wape": 22.0508
+    },
+    {
+      "bias": 3.3784,
+      "family": "PRODUCE",
+      "model": "naive",
+      "n": 1680,
+      "wape": 36.6373
+    },
+    {
+      "bias": 0.8033,
+      "family": "PRODUCE",
+      "model": "seasonal_naive",
+      "n": 1680,
+      "wape": 12.882
+    }
+  ]
+}

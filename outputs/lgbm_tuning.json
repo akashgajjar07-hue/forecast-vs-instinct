@@ -1,0 +1,578 @@
+{
+  "selection_metric": "overall WAPE over the 10 selection origins, variant A (tie-break |bias|, WAPE rounded to 2 dp)",
+  "tuning_variant": "A (chosen params reused unchanged for variant B)",
+  "tuning_origin_stride": 2,
+  "holdout_guard": "panel truncated at 2017-06-27; holdout origins never run",
+  "candidates": [
+    {
+      "name": "tweedie_p1.2",
+      "stage": "objective",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "tweedie",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "raw",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.2985,
+      "selection_bias": -1.6906,
+      "runtime_s": 78.7,
+      "mean_fit_s": 7.86,
+      "n_train_last": 413280
+    },
+    {
+      "name": "tweedie_p1.5",
+      "stage": "objective",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "tweedie",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "raw",
+        "tweedie_variance_power": 1.5,
+        "use_oil": false
+      },
+      "selection_wape": 12.3016,
+      "selection_bias": -1.7694,
+      "runtime_s": 80.2,
+      "mean_fit_s": 8.01,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_raw",
+      "stage": "objective",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "raw",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.4739,
+      "selection_bias": -1.484,
+      "runtime_s": 66.1,
+      "mean_fit_s": 6.6,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l1_raw",
+      "stage": "objective",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression_l1",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "raw",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.2828,
+      "selection_bias": -2.1898,
+      "runtime_s": 86.9,
+      "mean_fit_s": 8.68,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28",
+      "stage": "objective",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.0392,
+      "selection_bias": -0.6317,
+      "runtime_s": 71.3,
+      "mean_fit_s": 7.12,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+leaves31",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 31,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.0858,
+      "selection_bias": -0.7074,
+      "runtime_s": 58.0,
+      "mean_fit_s": 5.79,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+leaves127",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 127,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 11.9144,
+      "selection_bias": -0.6151,
+      "runtime_s": 98.7,
+      "mean_fit_s": 9.86,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+min_leaf30",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 30,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.0611,
+      "selection_bias": -0.6295,
+      "runtime_s": 67.2,
+      "mean_fit_s": 6.71,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+min_leaf300",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 300,
+        "n_estimators": 400,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.046,
+      "selection_bias": -0.6608,
+      "runtime_s": 61.9,
+      "mean_fit_s": 6.18,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+lr0.03_n800",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.03,
+        "min_data_in_leaf": 100,
+        "n_estimators": 800,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.0169,
+      "selection_bias": -0.7124,
+      "runtime_s": 120.2,
+      "mean_fit_s": 12.01,
+      "n_train_last": 413280
+    },
+    {
+      "name": "l2_ratio28+lr0.1_n200",
+      "stage": "structure",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.1,
+        "min_data_in_leaf": 100,
+        "n_estimators": 200,
+        "num_leaves": 63,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 12.0831,
+      "selection_bias": -0.6043,
+      "runtime_s": 31.4,
+      "mean_fit_s": 3.13,
+      "n_train_last": 413280
+    },
+    {
+      "name": "quake_drop_targets",
+      "stage": "quake",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 127,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "drop",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 11.9423,
+      "selection_bias": -1.0556,
+      "runtime_s": 79.2,
+      "mean_fit_s": 7.91,
+      "n_train_last": 393120
+    },
+    {
+      "name": "oil_lagged",
+      "stage": "oil",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 127,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 2,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": true
+      },
+      "selection_wape": 12.2724,
+      "selection_bias": -0.211,
+      "runtime_s": 109.6,
+      "mean_fit_s": 10.94,
+      "n_train_last": 413280
+    },
+    {
+      "name": "stride1",
+      "stage": "stride",
+      "params": {
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "learning_rate": 0.05,
+        "min_data_in_leaf": 100,
+        "n_estimators": 400,
+        "num_leaves": 127,
+        "num_threads": 4,
+        "objective": "regression",
+        "origin_stride": 1,
+        "quake": "flag",
+        "target": "ratio",
+        "tweedie_variance_power": 1.2,
+        "use_oil": false
+      },
+      "selection_wape": 11.8836,
+      "selection_bias": -0.5355,
+      "runtime_s": 165.4,
+      "mean_fit_s": 16.52,
+      "n_train_last": 825888
+    }
+  ],
+  "chosen_params": {
+    "objective": "regression",
+    "tweedie_variance_power": 1.2,
+    "target": "ratio",
+    "num_leaves": 127,
+    "learning_rate": 0.05,
+    "n_estimators": 400,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 1,
+    "lambda_l2": 1.0,
+    "quake": "flag",
+    "use_oil": false,
+    "origin_stride": 1,
+    "num_threads": 4
+  },
+  "decisions": {
+    "objective_stage_winner": "l2_ratio28",
+    "structure_stage_winner": "l2_ratio28+leaves127",
+    "quake": {
+      "choice": "flag",
+      "flag_wape": 11.9144,
+      "flag_bias": -0.6151,
+      "drop_wape": 11.9423,
+      "drop_bias": -1.0556
+    },
+    "oil": {
+      "keep": false,
+      "without_wape": 11.9144,
+      "with_wape": 12.2724,
+      "rule": "keep only if selection WAPE (2 dp) improves"
+    },
+    "origin_stride": {
+      "choice": 1,
+      "stride2_wape": 11.9144,
+      "stride1_wape": 11.8836,
+      "rule": "stride 1 only if selection WAPE (2 dp) improves on stride 2"
+    }
+  },
+  "final": {
+    "A": {
+      "runtime_s": 294.0,
+      "mean_fit_s_per_origin": 16.32,
+      "selection": {
+        "wape": 11.8836,
+        "bias": -0.5355,
+        "by_family": {
+          "BEVERAGES": {
+            "wape": 13.8067,
+            "bias": -2.3907
+          },
+          "BREAD/BAKERY": {
+            "wape": 11.5828,
+            "bias": 2.6133
+          },
+          "CLEANING": {
+            "wape": 12.7692,
+            "bias": 0.4187
+          },
+          "DAIRY": {
+            "wape": 10.6336,
+            "bias": 1.1432
+          },
+          "FROZEN FOODS": {
+            "wape": 20.4998,
+            "bias": -0.1012
+          },
+          "GROCERY I": {
+            "wape": 11.3794,
+            "bias": -0.2772
+          },
+          "PERSONAL CARE": {
+            "wape": 14.862,
+            "bias": -1.6303
+          },
+          "PRODUCE": {
+            "wape": 9.5277,
+            "bias": -0.2899
+          }
+        }
+      },
+      "calibration": {
+        "wape": 12.6511,
+        "bias": -2.3854,
+        "by_family": {
+          "BEVERAGES": {
+            "wape": 13.6354,
+            "bias": -3.4112
+          },
+          "BREAD/BAKERY": {
+            "wape": 10.4716,
+            "bias": -2.7795
+          },
+          "CLEANING": {
+            "wape": 19.1309,
+            "bias": -1.8182
+          },
+          "DAIRY": {
+            "wape": 10.4987,
+            "bias": 1.002
+          },
+          "FROZEN FOODS": {
+            "wape": 20.2366,
+            "bias": -0.2142
+          },
+          "GROCERY I": {
+            "wape": 12.7158,
+            "bias": -3.1258
+          },
+          "PERSONAL CARE": {
+            "wape": 16.1887,
+            "bias": -1.495
+          },
+          "PRODUCE": {
+            "wape": 8.255,
+            "bias": -1.3783
+          }
+        }
+      }
+    },
+    "B": {
+      "runtime_s": 245.5,
+      "mean_fit_s_per_origin": 13.63,
+      "selection": {
+        "wape": 12.0472,
+        "bias": -1.1787,
+        "by_family": {
+          "BEVERAGES": {
+            "wape": 14.2523,
+            "bias": -2.8939
+          },
+          "BREAD/BAKERY": {
+            "wape": 11.6006,
+            "bias": 2.5482
+          },
+          "CLEANING": {
+            "wape": 12.783,
+            "bias": 0.0126
+          },
+          "DAIRY": {
+            "wape": 11.0684,
+            "bias": 0.8784
+          },
+          "FROZEN FOODS": {
+            "wape": 19.8365,
+            "bias": -1.0445
+          },
+          "GROCERY I": {
+            "wape": 11.298,
+            "bias": -1.7473
+          },
+          "PERSONAL CARE": {
+            "wape": 15.0168,
+            "bias": -1.7262
+          },
+          "PRODUCE": {
+            "wape": 9.8074,
+            "bias": -0.1093
+          }
+        }
+      },
+      "calibration": {
+        "wape": 12.9141,
+        "bias": -2.2236,
+        "by_family": {
+          "BEVERAGES": {
+            "wape": 13.8454,
+            "bias": -3.9208
+          },
+          "BREAD/BAKERY": {
+            "wape": 10.5703,
+            "bias": -2.1477
+          },
+          "CLEANING": {
+            "wape": 19.7448,
+            "bias": -1.3979
+          },
+          "DAIRY": {
+            "wape": 10.6126,
+            "bias": 0.1163
+          },
+          "FROZEN FOODS": {
+            "wape": 20.2446,
+            "bias": 0.3933
+          },
+          "GROCERY I": {
+            "wape": 12.9863,
+            "bias": -2.5316
+          },
+          "PERSONAL CARE": {
+            "wape": 16.9287,
+            "bias": -0.5009
+          },
+          "PRODUCE": {
+            "wape": 8.4418,
+            "bias": -1.0752
+          }
+        }
+      }
+    }
+  },
+  "runtime_s": {
+    "tuning": 1174.9,
+    "final": 539.5
+  }
+}

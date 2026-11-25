@@ -1,0 +1,135 @@
+{
+  "calibration_coverage_in_sample": 79.76190476190477,
+  "calibration_coverage_leave_one_origin_out": 79.20386904761905,
+  "level": 0.8,
+  "method": "Scaled split-conformal: residual (A-F)/scale_T, scale_T = mean sales of the 28 days up to T; quantiles 0.10/0.90 per family x horizon bucket from CALIBRATION champion backtests (8 origins). P10/P90 = max(0, F + q*scale_T).",
+  "quantile_objective_comparison": "not run (optional in brief); see DECISIONS.md",
+  "quantiles": [
+    {
+      "bucket": "1-7",
+      "family": "BEVERAGES",
+      "n": 672,
+      "q_hi": 0.227499,
+      "q_lo": -0.163244
+    },
+    {
+      "bucket": "8-14",
+      "family": "BEVERAGES",
+      "n": 672,
+      "q_hi": 0.220804,
+      "q_lo": -0.174699
+    },
+    {
+      "bucket": "1-7",
+      "family": "BREAD/BAKERY",
+      "n": 672,
+      "q_hi": 0.213811,
+      "q_lo": -0.133419
+    },
+    {
+      "bucket": "8-14",
+      "family": "BREAD/BAKERY",
+      "n": 672,
+      "q_hi": 0.205371,
+      "q_lo": -0.133892
+    },
+    {
+      "bucket": "1-7",
+      "family": "CLEANING",
+      "n": 672,
+      "q_hi": 0.256975,
+      "q_lo": -0.233781
+    },
+    {
+      "bucket": "8-14",
+      "family": "CLEANING",
+      "n": 672,
+      "q_hi": 0.197405,
+      "q_lo": -0.234515
+    },
+    {
+      "bucket": "1-7",
+      "family": "DAIRY",
+      "n": 672,
+      "q_hi": 0.171523,
+      "q_lo": -0.16418
+    },
+    {
+      "bucket": "8-14",
+      "family": "DAIRY",
+      "n": 672,
+      "q_hi": 0.148917,
+      "q_lo": -0.178096
+    },
+    {
+      "bucket": "1-7",
+      "family": "FROZEN FOODS",
+      "n": 672,
+      "q_hi": 0.364693,
+      "q_lo": -0.321446
+    },
+    {
+      "bucket": "8-14",
+      "family": "FROZEN FOODS",
+      "n": 672,
+      "q_hi": 0.339946,
+      "q_lo": -0.33537
+    },
+    {
+      "bucket": "1-7",
+      "family": "GROCERY I",
+      "n": 672,
+      "q_hi": 0.21039,
+      "q_lo": -0.152973
+    },
+    {
+      "bucket": "8-14",
+      "family": "GROCERY I",
+      "n": 672,
+      "q_hi": 0.214331,
+      "q_lo": -0.166612
+    },
+    {
+      "bucket": "1-7",
+      "family": "PERSONAL CARE",
+      "n": 672,
+      "q_hi": 0.251943,
+      "q_lo": -0.229845
+    },
+    {
+      "bucket": "8-14",
+      "family": "PERSONAL CARE",
+      "n": 672,
+      "q_hi": 0.25368,
+      "q_lo": -0.228033
+    },
+    {
+      "bucket": "1-7",
+      "family": "PRODUCE",
+      "n": 672,
+      "q_hi": 0.154627,
+      "q_lo": -0.132246
+    },
+    {
+      "bucket": "8-14",
+      "family": "PRODUCE",
+      "n": 672,
+      "q_hi": 0.141901,
+      "q_lo": -0.128437
+    }
+  ],
+  "total_quantiles": [
+    {
+      "bucket": "1-7",
+      "n": 56,
+      "q_hi": 0.111617,
+      "q_lo": -0.051937
+    },
+    {
+      "bucket": "8-14",
+      "n": 56,
+      "q_hi": 0.100885,
+      "q_lo": -0.053392
+    }
+  ]
+}
