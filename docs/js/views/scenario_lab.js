@@ -58,7 +58,7 @@ export async function render(el, params) {
   </div>
   <section class="card real-panel">
     <div class="card-head"><h2>Ecuador analogue</h2><span class="real-badge">Real data · Favorita, Ecuador</span></div>
-    <p class="small">Observed change in mean daily sales on Ecuador national holidays vs normal days. <b>Not a UAE estimate</b>: a different country, calendar and shopping culture. Shown only as a sense-check for the size of the assumptions above.</p>
+    <p class="small">Observed change in sales on Ecuador national days off vs the same weekday one and two weeks before and after (mean over holidays, 12 stores, history to the end of calibration). <b>Not a UAE estimate</b>: a different country, calendar and shopping culture. Shown only as a sense-check for the size of the assumptions above.</p>
     <div id="sl-analogue" class="chart short"></div>
   </section>`;
 

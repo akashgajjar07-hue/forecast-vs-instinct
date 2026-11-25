@@ -184,14 +184,16 @@ export async function render(el, params, ctx) {
     const base = wi.rows.find((r) => r.scale_pct === 0);
     sel("#ws-scale-val").textContent = `${state.scale > 0 ? "+" : ""}${state.scale} %`;
     scale.setAttribute("aria-valuetext", `${state.scale > 0 ? "plus " : state.scale < 0 ? "minus " : ""}${Math.abs(state.scale)} percent`);
-    sel("#ws-wi-sub").textContent = `forward window from ${fmtDate(addDays(wi.origin, 1))} · precomputed by the champion model`;
+    sel("#ws-wi-sub").textContent = `forward window from ${fmtDate(addDays(wi.origin, 1))} · precomputed with the frozen LightGBM model (known promo plan)`;
     const text = sel("#ws-wi-text");
     if (!row) {
       text.innerHTML = '<div class="empty">No what-if row for this change.</div>';
     } else {
       const extrap = row.extrapolation
-        ? `<p class="note bad small" role="alert"><b>Extrapolation warning.</b> ${fmtNum(row.promo_total)} planned promo item-days is beyond this series' historical range (p95 of a 14-day window ${fmtNum(wi.hist_p95_promo)}, max ${fmtNum(wi.hist_max_promo)}). The model has not seen promotion this intense; treat the number as indicative only.</p>`
-        : "";
+        ? `<p class="note bad small" role="alert"><b>Extrapolation warning.</b> ${fmtNum(row.promo_total)} planned promo item-days (${fmtNum(row.promo_total / 14, 1)} promoted items per day on average) is beyond this series' historical range (95th percentile of 14-day means ${fmtNum(wi.hist_p95_promo, 1)} per day, highest single day ${fmtNum(wi.hist_max_promo)}). The model has not seen promotion this intense; treat the number as indicative only.</p>`
+        : row.below_history
+          ? `<p class="note warn small">This plan has fewer promotions than any 14-day window in this series' history, so the model is also outside the range it learned from; treat the number as indicative only.</p>`
+          : "";
       text.innerHTML = `
         <p>Planned promotions: <b>${fmtNum(row.promo_total)}</b> item-days${base ? ` (baseline plan ${fmtNum(base.promo_total)})` : ""}.</p>
         <p class="verdict">Model-predicted change associated with this promotion plan: <b style="color:${C.champion}">${fmtPct(row.change_pct, 1, true)}</b> (${fmtNum(row.forecast_total)} units over 14 days).</p>

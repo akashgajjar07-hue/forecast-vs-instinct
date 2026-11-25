@@ -48,7 +48,7 @@ export async function render(el, params) {
           <div><b>${fmtPct(v.review_share_of_abs_error, 0)}</b>of absolute error in Review</div>
           <div><b>${fmtPct(v.review_share_of_windows, 0)}</b>of windows in Review</div>
         </div>
-        <p class="small muted">Rank correlation between the trust score at the origin and the error realised afterwards, compared with ranking by volatility alone. Weights chosen: ${esc(trust.calibration_choice.chosen)}${trust.calibration_choice.candidates.length > 1 ? ` (from ${trust.calibration_choice.candidates.length} candidates)` : ""}.</p>
+        <p class="small muted">Rank correlation between the trust score at the origin and the error realised afterwards, compared with ranking by volatility alone. Weights chosen on calibration windows: ${esc(trust.calibration_choice.chosen)}${trust.calibration_choice.grid_size ? ` (compared with default, equal and volatility-only weights and a ${fmtNum(trust.calibration_choice.grid_size)}-point weight grid)` : trust.calibration_choice.candidates.length > 1 ? ` (from ${trust.calibration_choice.candidates.length} candidates)` : ""}.</p>
         <h3>Component weights</h3>
         <div>${COMP.map((k) => `<span class="tag">${COMP_LABEL[k]} ${fmtNum(trust.weights[k] * (trust.weights[k] <= 1 ? 100 : 1), 0)} %</span>`).join("")}</div>
       </div>

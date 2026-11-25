@@ -25,6 +25,6 @@ jobs:
       - name: Unit tests on fixtures (Kaggle data not required)
         run: python -m pytest -m "not data" -q --junitxml=reports/junit-ci.xml
       - name: Scenario calculator tests (JS)
-        run: node --test tests/js/
+        run: node --test tests/js/scenario.test.mjs
       - name: Validate dashboard JSON against the data contract
         run: python scripts/validate_docs_data.py

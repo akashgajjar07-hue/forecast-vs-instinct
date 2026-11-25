@@ -43,7 +43,7 @@ export async function render(el) {
       <h2>Findings</h2>
       <ul class="clean">${ov.findings.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
       <h3 style="margin-top:14px">Champion per family</h3>
-      <p class="small muted">Chosen on selection backtests only. Machine learning (LightGBM) is champion in ${fmtNum(ov.ml_wins.families_won)} of ${fmtNum(ov.ml_wins.n_families)} families.</p>
+      <p class="small muted">Chosen on selection backtests only: LightGBM is champion in ${fmtNum(champs.filter(([, m]) => m === "lightgbm").length)} of ${fmtNum(champs.length)} families. On the untouched holdout, LightGBM had the lowest WAPE of the five models in ${fmtNum(ov.ml_wins.families_won)} of ${fmtNum(ov.ml_wins.n_families)} families.</p>
       <div>${champs.map(([f, m]) => `<span class="tag">${esc(famLabel(f))}: <b>${esc(MODEL_LABEL[m] || m)}</b></span>`).join("")}</div>
     </section>
   </div>
