@@ -88,3 +88,34 @@ def apply_total_band(t: pd.DataFrame, qt: pd.DataFrame) -> pd.DataFrame:
     t["p10"] = np.maximum(0.0, t["forecast"] * (1 + t["q_lo"]))
     t["p90"] = t["forecast"] * (1 + t["q_hi"])
     return t.drop(columns=["q_lo", "q_hi"])
+
+
+# ---- 14-day window-total band per series (added after independent review) ----
+# Summing 14 daily P10s/P90s is NOT an 80 % band for the 14-day total (it covered ~94 %).
+# Same relative-residual conformal method as the chain-total band (fit_total_quantiles /
+# apply_total_band), applied to each series' 14-day sum, with quantiles per family.
+def window_totals(rows: pd.DataFrame) -> pd.DataFrame:
+    """Per (series, origin): 14-day forecast and actual sums. `complete` = every day open with an actual."""
+    g = rows.groupby(["series_id", "family", "origin"])
+    t = g.agg(forecast=("forecast", "sum"), actual=("actual", lambda a: a.sum(min_count=len(a))),
+              n_days=("horizon", "size"), n_closed=("closed", "sum"),
+              n_actual=("actual", lambda a: int(a.notna().sum()))).reset_index()
+    t["complete"] = (t["n_days"] == C.HORIZON) & (t["n_closed"] == 0) & (t["n_actual"] == C.HORIZON)
+    return t
+
+
+def fit_window_quantiles(rows: pd.DataFrame, by=("family",)) -> pd.DataFrame:
+    t = window_totals(rows)
+    t = t[t["complete"]]
+    t["res"] = (t["actual"] - t["forecast"]) / t["forecast"].clip(lower=1e-6)
+    q = t.groupby(list(by))["res"].quantile([LO, HI]).unstack()
+    q.columns = ["q_lo", "q_hi"]
+    q["n"] = t.groupby(list(by)).size()
+    return q.reset_index()
+
+
+def apply_window_band(rows: pd.DataFrame, q: pd.DataFrame, by=("family",)) -> pd.DataFrame:
+    t = window_totals(rows).merge(q[list(by) + ["q_lo", "q_hi"]], on=list(by), how="left")
+    t["p10"] = np.maximum(0.0, t["forecast"] * (1 + t["q_lo"]))
+    t["p90"] = t["forecast"] * (1 + t["q_hi"])
+    return t.drop(columns=["q_lo", "q_hi"])

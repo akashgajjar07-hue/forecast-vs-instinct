@@ -41,9 +41,10 @@ def run_models(panel, frozen):
     run_final_stages("holt_winters", B.holt_winters, panel, trend=p["holt_winters"]["trend"],
                      fit_days=p["holt_winters"]["fit_days"], n_jobs=4)
     B.shutdown_pool()
-    a = run_final_stages("lightgbm", lightgbm_model, panel, variant="A", save=False)
+    lgb = {k: v for k, v in p["lightgbm"].items()}  # frozen in selection.json (bound by its hash)
+    a = run_final_stages("lightgbm", functools.partial(lightgbm_model, **lgb), panel, variant="A", save=False)
     save_backtest(a, "lightgbm_A")
-    b = run_final_stages("lightgbm", functools.partial(lightgbm_model, variant="B"), panel, variant="B", save=False)
+    b = run_final_stages("lightgbm", functools.partial(lightgbm_model, variant="B", **lgb), panel, variant="B", save=False)
     save_backtest(b, "lightgbm_B")
     return round(time.time() - t0, 1)
 

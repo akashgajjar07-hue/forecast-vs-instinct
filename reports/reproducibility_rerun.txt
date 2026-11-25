@@ -1,0 +1,4 @@
+Reproducibility rerun of scripts/07_holdout_and_forward.py --rerun (2026-11-25T21:47Z)
+LightGBM params now passed explicitly from frozen selection.json (review finding 12).
+Result: REPRODUCED 7a7799b0bdce6f02b9066e00020a69978da2d3a558e6518378b761703aad73f8
+(matches outputs/holdout_run.json results_digest; outputs/holdout_results.json kept from the first run)

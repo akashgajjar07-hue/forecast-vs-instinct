@@ -80,3 +80,24 @@ def test_total_band():
     qt = fit_total_quantiles(rows)
     t = apply_total_band(total_rows(rows), qt)
     assert (t.p10 <= t.forecast).all() and (t.p90 >= t.forecast).all()
+
+
+def test_window_band_is_not_sum_of_daily_bounds_and_calibrates():
+    from src.intervals import fit_window_quantiles, apply_window_band, window_totals
+    rng = np.random.default_rng(3)
+    rows = []
+    for o in pd.date_range("2016-03-01", periods=40, freq="7D"):
+        for s, fam in [("1|BEVERAGES", "BEVERAGES"), ("2|BEVERAGES", "BEVERAGES")]:
+            shock = rng.normal(0, 0.1)  # window-level error, shared across the 14 days
+            for h in range(1, 15):
+                rows.append(dict(origin=o, series_id=s, family=fam, horizon=h, forecast=100.0,
+                                 actual=100.0 * (1 + shock), closed=0, target_date=o + pd.Timedelta(days=h)))
+    df = pd.DataFrame(rows)
+    cal, test = df[df.origin < "2016-08-01"], df[df.origin >= "2016-08-01"]
+    q = fit_window_quantiles(cal)
+    out = apply_window_band(test, q)
+    cov = M.coverage(out.actual, out.p10, out.p90)
+    assert 65 <= cov <= 95
+    assert (out.p10 <= out.forecast).all() and (out.p90 >= out.forecast).all()
+    wt = window_totals(df.assign(closed=np.where((df.horizon == 3) & (df.origin == df.origin.min()), 1, 0)))
+    assert (~wt.complete).sum() == 2  # windows with a closed day are excluded from fitting
