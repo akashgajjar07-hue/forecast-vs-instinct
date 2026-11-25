@@ -1,0 +1,83 @@
+/* Forecast vs Instinct: presentation theme (same tokens as docs/styles.css).
+   Slides are painted from an absolute display list built by scripts/10_build_presentations.py. */
+:root {
+  --bg: #01204C;
+  --panel: #001634;
+  --panel-deep: #00112D;
+  --card: #0F2A54;
+  --border: rgba(144, 144, 240, 0.18);
+  --text: #FFFFFF;
+  --text-2: #D7D0E7;
+  --text-muted: #9AA4AD;
+  --sky: #7BBDE6;
+  --grad: linear-gradient(115deg, #6030D8 0%, #9090F0 35%, #D890D8 65%, #60F0D8 100%);
+  --font-head: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Montserrat", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
+body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.slide { position: relative; overflow: hidden; background: var(--bg); break-after: page; page-break-after: always; }
+.slide:last-child { break-after: auto; page-break-after: auto; }
+.el { position: absolute; }
+
+/* background glows */
+.bg { position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 60% at 100% 0%, rgba(96, 48, 216, 0.38), transparent 70%),
+    radial-gradient(ellipse 45% 50% at 0% 100%, rgba(96, 240, 216, 0.10), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 120%, rgba(144, 144, 240, 0.12), transparent 70%),
+    var(--bg); }
+.bg::after { content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(144,144,240,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(144,144,240,.045) 1px, transparent 1px);
+  background-size: 64px 64px; mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 20%, transparent 75%); }
+
+/* cards */
+.card { border-radius: 20px; background: #0F2A54; border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 40px rgba(144,144,240,.06); }
+.card.panel { background: #001634; }
+.card.deep { background: #00112D; }
+
+/* text */
+.tx { overflow: hidden; display: flex; flex-direction: column; }
+.tx.v-middle { justify-content: center; }
+.tx.v-bottom { justify-content: flex-end; }
+.tx p { overflow-wrap: break-word; font-variant-numeric: tabular-nums; }
+.tx p.bul { position: relative; }
+.tx p.bul::before { content: ""; position: absolute; left: 0; top: calc(0.5em * var(--lh) - 0.2em); width: 0.42em; height: 0.42em; border-radius: 50%; background: var(--bc, #7BBDE6); }
+.tx .f-head { font-family: var(--font-head); }
+.tx .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* badge */
+.ring-badge { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head);
+  font-weight: 700; color: #fff; border: 3px solid transparent;
+  background: linear-gradient(#00112D, #00112D) padding-box, var(--grad) border-box;
+  box-shadow: 0 0 26px rgba(144, 144, 240, 0.40); }
+
+/* shapes */
+.shape { width: 100%; height: 100%; position: relative; }
+.shape svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.shape-glow { filter: drop-shadow(0 28px 44px rgba(96, 48, 216, 0.55)); }
+.torus { position: absolute; inset: 8%; transform: perspective(900px) rotateX(58deg) rotateZ(-22deg); }
+.torus::before, .torus::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+  -webkit-mask: radial-gradient(closest-side, transparent 50%, #000 51.5%, #000 98%, transparent 100%);
+          mask: radial-gradient(closest-side, transparent 50%, #000 51.5%, #000 98%, transparent 100%); }
+.torus::before {
+  background:
+    radial-gradient(closest-side, rgba(0, 12, 40, 0.6) 50%, rgba(0, 12, 40, 0) 62%, rgba(255, 255, 255, 0) 78%, rgba(0, 12, 40, 0.55) 99%),
+    conic-gradient(from 200deg, #6030D8, #9090F0, #D890D8, #FFFFFF 22%, #60F0D8, #7BBDE6, #9090F0, #6030D8 72%, #D890D8, #6030D8); }
+.torus::after { background: radial-gradient(ellipse 60% 40% at 32% 22%, rgba(255, 255, 255, 0.85), transparent 60%); opacity: .75; filter: blur(2px); }
+.orb { position: absolute; inset: 10%; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #FFFFFF 0, #D890D8 14%, #9090F0 36%, #6030D8 66%, #1B0F5A 100%);
+  box-shadow: inset -10px -14px 30px rgba(0, 10, 40, 0.55), 0 18px 40px rgba(96, 48, 216, 0.35); }
+
+/* tables */
+table.tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+table.tbl th { text-align: left; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid rgba(144,144,240,.30); }
+table.tbl td { color: var(--text-2); border-bottom: 1px solid rgba(144,144,240,.12); }
+table.tbl td.num, table.tbl th.num { text-align: right; }
+.pill { display: inline-block; padding: 0.15em 0.7em; border-radius: 999px; font-weight: 700; color: #00112D; }
+
+/* charts */
+.chart svg { display: block; overflow: visible; font-family: var(--font-body); font-variant-numeric: tabular-nums; }
