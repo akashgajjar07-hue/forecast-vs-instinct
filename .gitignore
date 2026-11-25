@@ -1,0 +1,19 @@
+# Data (Kaggle licence: raw data is not redistributed)
+data/raw/
+data/interim/
+data/processed/
+*.parquet
+!docs/data/*.parquet
+*.zip
+# Secrets
+kaggle.json
+.env
+# Environments / caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+node_modules/
+test-results/
