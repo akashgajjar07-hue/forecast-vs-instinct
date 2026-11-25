@@ -164,7 +164,7 @@ def demand():
 def test_demand_json_validates_and_is_small(demand):
     jsonschema.validate(demand, SCHEMAS["demand.json"])
     assert (OUT / "demand.json").stat().st_size < 400_000
-    assert set(demand["weekly"]["by_family"]) == set(eda.C.FAMILIES)
+    assert set(demand["weekly"]["family_index"]) == set(eda.C.FAMILIES)
     assert len(demand["volatility"]) == 96 and len(demand["promo_frequency"]) == 96
 
 
@@ -175,22 +175,21 @@ def test_demand_dow_profile_mean_one(demand):
 
 
 @pytest.mark.data
-def test_weekly_totals_reconcile_with_panel(demand, real_panel):
-    p = real_panel[(real_panel.is_future == 0)].copy()
+def test_weekly_family_index_reconciles_with_panel(demand, real_panel):
+    """Equal-weighted family weekly index recomputed independently: per series mean daily sales over the week's open
+    days / series base (open-day mean 2015-06-01..2017-02-06) x 100, then the plain mean over the family's series."""
+    p = real_panel[(real_panel.is_future == 0) & (real_panel.closed == 0) & real_panel.sales.notna()].copy()
+    base = p[(p.date >= "2015-06-01") & (p.date <= "2017-02-06")].groupby("series_id")["sales"].mean()
+    p["idx"] = p["sales"] / p["series_id"].map(base) * 100
     p["week_start"] = (p["date"] - pd.to_timedelta(p["date"].dt.dayofweek, unit="D")).dt.strftime("%Y-%m-%d")
     weeks = demand["weekly"]["week_start"]
-    exp = p[p.week_start.isin(weeks)].groupby(["family", "week_start"])["sales"].sum()
-    # every published week is complete and ends on or before the EDA cutoff (no holdout data)
-    assert pd.Timestamp(weeks[-1]) + pd.Timedelta(days=6) <= pd.Timestamp(eda.EDA_CUTOFF)
-    for fam, vals in demand["weekly"]["by_family"].items():
+    assert pd.Timestamp(weeks[-1]) + pd.Timedelta(days=6) <= pd.Timestamp(eda.EDA_CUTOFF)  # no holdout data
+    sw = p[p.week_start.isin(weeks)].groupby(["family", "series_id", "week_start"])["idx"].mean()
+    exp = sw.groupby(["family", "week_start"]).mean()
+    for fam, vals in demand["weekly"]["family_index"].items():
         e = exp.loc[fam].reindex(weeks).to_numpy()
-        assert np.allclose(np.array(vals, float), e, rtol=1e-6, atol=1e-3)  # JSON rounded to 3 dp
-    # unrounded SQL vs pandas: 1e-6
-    con = eda.connect()
-    wk = eda.run_sql(con, "01_weekly_family_totals")
-    got = wk.assign(week_start=wk.week_start.astype(str)).set_index(["family", "week_start"])["sales"]
-    diff = (got - exp.reindex(got.index)).abs().max()
-    assert diff < 1e-6
+        assert np.allclose(np.array(vals, float), e, rtol=0, atol=0.005 + 1e-9)  # JSON rounded to 2 dp
+    assert "units" not in json.dumps(demand["weekly"]).replace("no units", "")
 
 
 @pytest.mark.data

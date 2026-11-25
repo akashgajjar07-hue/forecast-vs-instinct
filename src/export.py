@@ -21,6 +21,7 @@ from . import config as C
 from .freeze import verify
 from . import metrics as M
 from .backtest import evaluable, masked_view
+from . import indexing as IX
 from .runner import load_backtests
 from .schemas import SCHEMAS, SERIES_SCHEMA
 from .trust import COMPONENTS, describe_flags
@@ -30,6 +31,7 @@ FORWARD_ORIGIN = pd.Timestamp(C.LAST_ACTUAL)
 FORWARD_START = FORWARD_ORIGIN + pd.Timedelta(days=1)
 FORWARD_END = FORWARD_ORIGIN + pd.Timedelta(days=C.HORIZON)
 HISTORY_START = pd.Timestamp("2017-01-01")
+HISTORY_WEEKS_START = pd.Timestamp(C.MODEL_START)  # a Monday
 OUTLOOK_DAYS = 56
 WHATIF_SCALES = [-100, -50, 0, 50, 100]
 BIAS_RULE_PP = 2.0
@@ -90,9 +92,14 @@ def pct(x, nd: int = 1) -> str:
     return f"{x:.{nd}f} %"
 
 
-def metric_dict(a, f) -> dict:
+def metric_dict(a, f, base) -> dict:
+    """WAPE / bias in % (unchanged, from units). MAE / RMSE on the index scale: per row (A − F) / series base × 100,
+    so they are 'index points' and carry no unit volume (owner rule, Kaggle 7B)."""
     r = M.all_metrics(a, f)
-    return {"wape": rnd(r.wape, 4), "bias": rnd(r.bias, 4), "mae": rnd(r.mae, 4), "rmse": rnd(r.rmse, 4), "n": int(r.n)}
+    k = 100.0 / np.asarray(base, float)
+    ai, fi = np.asarray(a, float) * k, np.asarray(f, float) * k
+    return {"wape": rnd(r.wape, 4), "bias": rnd(r.bias, 4), "mae": rnd(M.mae(ai, fi), 4), "rmse": rnd(M.rmse(ai, fi), 4),
+            "n": int(r.n)}
 
 
 def dump(obj, path: Path) -> int:
@@ -122,6 +129,8 @@ def load_inputs() -> dict:
     panel = pd.read_parquet(C.PROCESSED / "panel.parquet")
     return {
         "bt": bt, "ci": ci, "ct": ct, "ts": ts, "panel": panel,
+        "base": IX.series_base(panel),
+        "promo_base": IX.promo_base(panel, FORWARD_ORIGIN),
         "selection": read_json(OUT / "selection.json"),
         "intervals": read_json(OUT / "intervals.json"),
         "trust_weights": read_json(OUT / "trust_weights.json"),
@@ -133,6 +142,7 @@ def load_inputs() -> dict:
         "cal": read_json(C.CONFIG / "split_calendar.json"),
         "window_intervals": verify("window_intervals"),
         "window_band": read_json(OUT / "window_band_results.json"),
+        "window_band_forward": pd.read_parquet(OUT / "holdout" / "window_band_forward.parquet"),
     }
 
 
@@ -151,22 +161,27 @@ def champion_bt(inp, stage: str) -> pd.DataFrame:
 # ------------------------------------------------------------------------------------------------
 # arena
 # ------------------------------------------------------------------------------------------------
-def arena_rows(bt: pd.DataFrame, stage: str) -> list[dict]:
+def arena_rows(bt: pd.DataFrame, stage: str, base: pd.Series) -> list[dict]:
     rows = []
     ev = evaluable(bt[bt["stage"] == stage]).copy()
+    ev["base"] = ev["series_id"].map(base)
     ev["horizon_bucket"] = np.where(ev["horizon"] <= 7, "1-7", "8-14")
     ev["promo"] = np.where(ev["onpromotion"] > 0, "promo", "no_promo")
     ev["holiday"] = np.where(ev["is_holiday"] == 1, "holiday", "normal")
     for (model, variant), g in ev.groupby(["model", "variant"], sort=True):
-        base = {"stage": stage, "model": model, "variant": variant}
-        rows.append({**base, "slice_type": "overall", "slice_value": "all", **metric_dict(g["actual"], g["forecast"])})
+        key = {"stage": stage, "model": model, "variant": variant}
+        rows.append({**key, "slice_type": "overall", "slice_value": "all",
+                     **metric_dict(g["actual"], g["forecast"], g["base"])})
         for st, col in [("family", "family"), ("store", "store_nbr"), ("horizon", "horizon"),
                         ("horizon_bucket", "horizon_bucket"), ("promo", "promo"), ("holiday", "holiday")]:
             for v, gg in g.groupby(col, sort=True):
-                rows.append({**base, "slice_type": st, "slice_value": str(v), **metric_dict(gg["actual"], gg["forecast"])})
+                rows.append({**key, "slice_type": st, "slice_value": str(v),
+                             **metric_dict(gg["actual"], gg["forecast"], gg["base"])})
         wk = M.bucket_totals(g, ["series_id", "origin"])
+        wk["base"] = wk["series_id"].map(base)
         for v, gg in wk.groupby("bucket", sort=True):
-            rows.append({**base, "slice_type": "week_bucket", "slice_value": v, **metric_dict(gg["actual"], gg["forecast"])})
+            rows.append({**key, "slice_type": "week_bucket", "slice_value": v,
+                         **metric_dict(gg["actual"], gg["forecast"], gg["base"])})
     return rows
 
 
@@ -174,7 +189,7 @@ def build_arena(inp) -> dict:
     bt = inp["bt"]
     metrics = []
     for stage in ["selection", "calibration", "holdout"]:
-        metrics += arena_rows(bt, stage)
+        metrics += arena_rows(bt, stage, inp["base"])
     # identical evaluation population check
     for stage in ["selection", "calibration", "holdout"]:
         ns = {(r["model"], r["variant"]): r["n"] for r in metrics if r["stage"] == stage and r["slice_type"] == "overall"}
@@ -206,7 +221,12 @@ def build_arena(inp) -> dict:
         "Variant A uses the known promotion plan (count of promoted items on the target date); variant B has no "
         "future promotion information. Baselines use no promotion information and appear once (variant A).",
     ]
-    return {"metrics": metrics, "champions": champs, "variant_comparison": vc, "notes": notes}
+    notes.append("MAE and RMSE are on the index scale ('index points'): each row's error (actual − forecast) is divided "
+                 "by its series' mean daily sales in the training period (2015-06-01 to 2017-02-06) and multiplied by "
+                 "100 before averaging, so 1 index point = 1 % of an average training-period day of that series. "
+                 "WAPE and bias are ratios of sums in units, unchanged. Unit volumes are not published (Kaggle rules).")
+    return {"metrics": metrics, "mae_unit": "index points (|actual − forecast| ÷ series base × 100)",
+            "champions": champs, "variant_comparison": vc, "notes": notes}
 
 
 # ------------------------------------------------------------------------------------------------
@@ -219,9 +239,12 @@ def holdout_interval_rows(inp) -> pd.DataFrame:
 
 def build_intervals(inp) -> dict:
     iv = inp["intervals"]
-    h = holdout_interval_rows(inp)
+    h = holdout_interval_rows(inp).copy()
+    h["base"] = h["series_id"].map(inp["base"])
     cov = lambda d: M.coverage(d["actual"], d["p10"], d["p90"])
-    wid = lambda d: M.mean_width(d["p10"], d["p90"])
+    # width on the index scale (mean of (P90 − P10) / series base × 100) and as % of the forecast (sum / sum)
+    wid = lambda d: float(((d["p90"] - d["p10"]) / d["base"] * 100).mean())
+    wpct = lambda d: float((d["p90"] - d["p10"]).sum() / d["forecast"].sum() * 100)
     return {
         "method": iv["method"] + " Coverage is an empirical target measured on past windows, not a guarantee.",
         "level": float(iv["level"]) * 100 if iv["level"] <= 1 else float(iv["level"]),
@@ -231,13 +254,14 @@ def build_intervals(inp) -> dict:
         "calibration_coverage_note": "Leave-one-origin-out estimate on the 8 calibration origins "
                                      f"(in-sample: {iv['calibration_coverage_in_sample']:.1f} %).",
         "holdout": {
-            "coverage": float(cov(h)), "mean_width": float(wid(h)),
-            "by_family": [{"family": f, "coverage": rnd(cov(g), 4), "mean_width": rnd(wid(g), 4)}
-                          for f, g in h.groupby("family")],
-            "by_horizon": [{"horizon": int(k), "coverage": rnd(cov(g), 4), "mean_width": rnd(wid(g), 4)}
-                           for k, g in h.groupby("horizon")],
+            "coverage": float(cov(h)), "mean_width": float(wid(h)), "mean_width_pct": float(wpct(h)),
+            "by_family": [{"family": f, "coverage": rnd(cov(g), 4), "mean_width": rnd(wid(g), 4),
+                           "mean_width_pct": rnd(wpct(g), 4)} for f, g in h.groupby("family")],
+            "by_horizon": [{"horizon": int(k), "coverage": rnd(cov(g), 4), "mean_width": rnd(wid(g), 4),
+                            "mean_width_pct": rnd(wpct(g), 4)} for k, g in h.groupby("horizon")],
         },
-        "width_unit": "units per day (mean of P90 − P10 over open holdout days)",
+        "width_unit": "mean_width: index points per day (mean of (P90 − P10) ÷ series base × 100 over open holdout "
+                      "days); mean_width_pct: Σ(P90 − P10) ÷ Σ forecast × 100",
         "window_band": build_window_band(inp),
     }
 
@@ -296,11 +320,17 @@ def latest_trust(inp) -> pd.DataFrame:
     t = t.join(f, on="series_id")
     assert np.allclose(t["forecast"], t["forecast_14d"], rtol=0, atol=1e-6), "trust forecast_14d != champion forward sum"
     # 14-day P10/P90 = separately calibrated 14-day-total band (scripts/07b_window_band.py), NOT summed daily bounds
-    wb = pd.DataFrame(inp["window_band"]["forward"]).set_index("series_id")
+    wb = inp["window_band_forward"].set_index("series_id")
     assert np.allclose(wb.loc[t["series_id"], "forecast_14d"].to_numpy(), t["forecast_14d"].to_numpy(), rtol=0, atol=1e-6)
     t["p10"] = wb.loc[t["series_id"], "p10_14d"].to_numpy()
     t["p90"] = wb.loc[t["series_id"], "p90_14d"].to_numpy()
-    return t.sort_values("priority", ascending=False).reset_index(drop=True)
+    # published per-series 14-day quantities: mean daily value over the 14 days / series base x 100
+    base = inp["base"].loc[t["series_id"]].to_numpy()
+    for c, src in [("forecast_14d_index", "forecast_14d"), ("p10_14d_index", "p10"), ("p90_14d_index", "p90")]:
+        t[c] = IX.to_index(t[src].to_numpy() / C.HORIZON, base)
+    t = t.sort_values("priority", ascending=False).reset_index(drop=True)
+    t["priority_rank"] = np.arange(1, len(t) + 1)
+    return t
 
 
 def weakest_component(row, weights) -> tuple[str, float]:
@@ -331,8 +361,8 @@ def build_trust(inp) -> dict:
             "score": rnd(r["score"], 2), "band": r["band"],
             "components": {c: rnd(r[c], 2) for c in COMPONENTS},
             "hard_flags": describe_flags(list(r["hard_flags"])),
-            "forecast_14d": rnd(r["forecast_14d"], 2), "p10_14d": rnd(r["p10"], 2), "p90_14d": rnd(r["p90"], 2),
-            "priority": rnd(r["priority"], 4),
+            "forecast_14d_index": rnd(r["forecast_14d_index"], 2), "p10_14d_index": rnd(r["p10_14d_index"], 2),
+            "p90_14d_index": rnd(r["p90_14d_index"], 2), "priority_rank": int(r["priority_rank"]),
         })
     validation = {k: tv[k] for k in ["n_windows", "spearman", "wape_by_band", "error_ratio_review_vs_accept",
                                       "review_share_of_abs_error", "review_share_of_windows",
@@ -342,6 +372,7 @@ def build_trust(inp) -> dict:
         "weights": {c: float(tw["weights"][c]) for c in COMPONENTS},
         "bands": [{"min": float(b["min"]), "band": b["band"]} for b in tw["bands"]],
         "latest_origin": iso(FORWARD_ORIGIN),
+        "scale": IX.SCALE_LABEL + "; 14-day values = mean daily value over the 14 days / series base x 100",
         "latest": latest,
         "validation": validation,
         "calibration_choice": {
@@ -353,10 +384,13 @@ def build_trust(inp) -> dict:
         },
         "notes": [
             "The Trust score is a 0–100 ranking index of how far to rely on a forecast, not a probability.",
-            "p10_14d / p90_14d: a separately calibrated P10–P90 band for each series' 14-day total (relative-residual "
-            "conformal on 14-day totals, fitted on calibration windows only; see intervals.json → window_band). "
-            "It replaced the sum of daily bounds after the independent review.",
-            "priority = (100 − score) × the series' share of the total 14-day forecast at this origin.",
+            "forecast_14d_index / p10_14d_index / p90_14d_index: the champion 14-day forecast and its separately "
+            "calibrated 14-day-total P10–P90 band (relative-residual conformal on 14-day totals, fitted on calibration "
+            "windows only; see intervals.json → window_band), expressed as an index: mean daily value over the 14 days "
+            "÷ the series' mean daily sales in the training period before the first selection origin × 100 "
+            "(100 = an average training-period day). Units are not published (Kaggle competition rules).",
+            "priority_rank: 1 = first to review. Priority = (100 − score) × the series' share of the total 14-day "
+            "forecast at this origin; only the rank is published, because the share would reveal unit volumes.",
         ],
     }
 
@@ -387,24 +421,32 @@ def lgbm_variant(inp, v) -> dict:
 
 
 def chain_outlook(inp) -> dict:
+    """Portfolio outlook as the EQUAL-WEIGHTED mean index of the 96 series (each series' index = value / its base
+    x 100). An equal-weighted mean carries no information about the bases, unlike a volume-weighted chain total.
+    The frozen chain-total P10–P90 band applies to the volume-weighted total, so it is not drawn here; its holdout
+    coverage is reported as text."""
     p = inp["panel"]
+    base = inp["base"]
     lo = FORWARD_ORIGIN - pd.Timedelta(days=OUTLOOK_DAYS - 1)
-    w = p[(p["date"] >= lo) & (p["date"] <= FORWARD_ORIGIN)]
+    w = p[(p["date"] >= lo) & (p["date"] <= FORWARD_ORIGIN)].copy()
+    w["ok"] = (w["closed"] == 0) & w["sales"].notna()
+    w["idx"] = w["sales"] / w["series_id"].map(base) * 100
     g = w.groupby("date")
-    tot = g["sales"].sum(min_count=1)
-    n_open = g.apply(lambda d: int(((d["closed"] == 0) & d["sales"].notna()).sum()))
-    history = [{"date": iso(d), "actual": (rnd(tot[d], 1) if n_open[d] == 96 else None)} for d in tot.index]
+    mean_idx = g["idx"].mean()
+    n_open = g["ok"].sum()
+    history = [{"date": iso(d), "mean_index": (rnd(mean_idx[d], 2) if n_open[d] == 96 else None)} for d in mean_idx.index]
+    f = forward_champion(inp).copy()
+    f["idx"] = f["forecast"] / f["series_id"].map(base) * 100
+    fm = f.groupby("target_date")["idx"].mean().sort_index()
+    forecast = [{"date": iso(d), "mean_index": rnd(v, 2)} for d, v in fm.items()]
     ct = inp["ct"]
-    f = ct[ct["stage"] == "forward"].sort_values("horizon")
-    forecast = [{"date": iso(r.target_date), "forecast": rnd(r.forecast, 1), "p10": rnd(r.p10, 1), "p90": rnd(r.p90, 1)}
-                for r in f.itertuples()]
-    tq = inp["intervals"]["total_quantiles"]
-    method = ("Own split-conformal band for the chain total: relative residuals (actual − forecast) / forecast of the "
-              "96-series daily total on the 8 calibration origins, 10th/90th percentiles per horizon bucket "
-              f"(days 1–7: {tq[0]['q_lo']*100:+.1f} % / {tq[0]['q_hi']*100:+.1f} %; days 8–14: "
-              f"{tq[1]['q_lo']*100:+.1f} % / {tq[1]['q_hi']*100:+.1f} %). Not the sum of series bands. "
-              "An empirical 80 % target, not a guarantee.")
-    return {"history": history, "forecast": forecast, "band_method": method}
+    hc = ct[(ct["stage"] == "holdout") & (ct["closed"] == 0) & ct["actual"].notna()]
+    cov = M.coverage(hc["actual"], hc["p10"], hc["p90"])
+    note = (f"No band is drawn: the frozen chain-total P10–P90 band applies to the volume-weighted chain total, not to "
+            f"this equal-weighted mean index. On the holdout that chain-total band contained {cov:.1f} % of daily chain "
+            f"totals ({len(hc)} days) against an empirical 80 % target.")
+    return {"scale": "equal-weighted mean index of the 96 series (each series' training-period mean = 100)",
+            "history": history, "forecast": forecast, "chain_band_holdout_coverage": float(cov), "band_note": note}
 
 
 def findings(inp, ivals) -> list[str]:
@@ -463,7 +505,7 @@ def build_overview(inp, ivals, trust) -> dict:
     for _, r in lt[lt["band"].isin(["Review", "Monitor"])].head(8).iterrows():
         top.append({"series_id": r["series_id"], "store_nbr": int(r["store_nbr"]), "family": r["family"],
                     "trust_score": rnd(r["score"], 2), "band": r["band"], "reason": reason_for(r, tw),
-                    "priority": rnd(r["priority"], 4)})
+                    "priority_rank": int(r["priority_rank"])})
     return {
         "kpis": {
             "forecast_14d_total": {"value": float(fwd["forecast"].sum()), "start": iso(FORWARD_START), "end": iso(FORWARD_END)},
@@ -597,9 +639,25 @@ def whatif_table(wi: pd.DataFrame, stats: pd.DataFrame) -> pd.DataFrame:
 # ------------------------------------------------------------------------------------------------
 # series files
 # ------------------------------------------------------------------------------------------------
+def weekly_index(h: pd.DataFrame, base: float) -> tuple[list[str], list]:
+    """Monday weeks from HISTORY_WEEKS_START to the last complete week <= FORWARD_ORIGIN: mean daily sales over the
+    week's open days / series base x 100 (None if no open day)."""
+    d = h[(h["date"] >= HISTORY_WEEKS_START)].copy()
+    last_sunday = FORWARD_ORIGIN - pd.Timedelta(days=(FORWARD_ORIGIN.dayofweek + 1) % 7)
+    d = d[d["date"] <= last_sunday]
+    d = d[(d["closed"] == 0) & d["sales"].notna()]
+    d["week"] = d["date"] - pd.to_timedelta(d["date"].dt.dayofweek, unit="D")
+    m = d.groupby("week")["sales"].mean()
+    weeks = pd.date_range(HISTORY_WEEKS_START, last_sunday - pd.Timedelta(days=6), freq="7D")
+    vals = [rnd(IX.to_index(m[w], base), 1) if w in m.index else None for w in weeks]
+    return [iso(w) for w in weeks], vals
+
+
 def build_series(inp, wi: pd.DataFrame, wt: pd.DataFrame) -> dict[str, dict]:
+    """Per-series files. Every sales-scale value is an index (value / series base x 100, see src/indexing.py);
+    planned promotions are a promo index (count / series mean promo count up to the forward origin x 100)."""
     p = inp["panel"]
-    hist = p[(p["date"] >= HISTORY_START) & (p["date"] <= FORWARD_ORIGIN)].sort_values(["series_id", "date"])
+    full = p[p["date"] <= FORWARD_ORIGIN].sort_values(["series_id", "date"])
     ch = champions(inp)
     bt = inp["bt"]
     fin = bt[bt["stage"].isin(["holdout", "forward"])].copy()
@@ -610,42 +668,53 @@ def build_series(inp, wi: pd.DataFrame, wt: pd.DataFrame) -> dict[str, dict]:
     files = {}
     for s in build_series_index(inp):
         sid, fam = s["series_id"], s["family"]
-        h = hist[hist["series_id"] == sid]
+        b = float(inp["base"][sid])
+        pb = inp["promo_base"].get(sid)
+        pb = None if pb is None or pd.isna(pb) else float(pb)
+        X = lambda v, nd=1: None if v is None or pd.isna(v) else rnd(IX.to_index(float(v), b), nd)  # noqa: E731
+        P = lambda v: None if (pb is None or v is None or pd.isna(v)) else rnd(IX.to_index(float(v), pb), 1)  # noqa: E731
+        hs = full[full["series_id"] == sid]
+        h = hs[hs["date"] >= HISTORY_START]
         assert len(h) == (FORWARD_ORIGIN - HISTORY_START).days + 1
-        sales = [None if (c == 1 or pd.isna(v)) else rnd(v, 1) for v, c in zip(h["sales"], h["closed"])]
+        daily = [None if (c == 1 or pd.isna(v)) else X(v) for v, c in zip(h["sales"], h["closed"])]
+        week_start, wk_index = weekly_index(hs, b)
         holdout = []
         for o in inp["cal"]["stages"]["holdout"]:
             o = pd.Timestamp(o)
             c = ci.loc[("holdout", o, sid)]
-            mp = piv.loc[("holdout", o, sid)]
+            # Champion only on holdout windows: per-series challenger forecasts next to published, volume-weighted
+            # holdout WAPE / bias slices for every model would make the bases identifiable (tests/test_no_reconstruction.py).
             rows = []
             for hz, r in c.iterrows():
-                act = None if (r["closed"] == 1 or pd.isna(r["actual"])) else rnd(r["actual"], 1)
-                rows.append({"date": iso(r["target_date"]), "h": int(hz), "actual": act, "p10": rnd(r["p10"], 1),
-                             "p90": rnd(r["p90"], 1), "models": {k: rnd(v, 1) for k, v in mp.loc[hz].items()}})
+                act = None if (r["closed"] == 1 or pd.isna(r["actual"])) else X(r["actual"])
+                rows.append({"date": iso(r["target_date"]), "h": int(hz), "actual_index": act, "p10_index": X(r["p10"]),
+                             "p90_index": X(r["p90"]), "forecast_index": X(r["forecast"])})
             holdout.append({"origin": iso(o), "champion": ch[fam], "rows": rows})
         c = ci.loc[("forward", FORWARD_ORIGIN, sid)]
         mp = piv.loc[("forward", FORWARD_ORIGIN, sid)]
-        frows = [{"date": iso(r["target_date"]), "h": int(hz), "forecast": rnd(r["forecast"], 1), "p10": rnd(r["p10"], 1),
-                  "p90": rnd(r["p90"], 1), "onpromotion": rnd(r["onpromotion"], 1),
-                  "models": {k: rnd(v, 1) for k, v in mp.loc[hz].items()}} for hz, r in c.iterrows()]
+        frows = [{"date": iso(r["target_date"]), "h": int(hz), "forecast_index": X(r["forecast"]), "p10_index": X(r["p10"]),
+                  "p90_index": X(r["p90"]), "promo_index": P(r["onpromotion"]),
+                  "models_index": {k: X(v) for k, v in mp.loc[hz].items()}} for hz, r in c.iterrows()]
         w = wt[wt["series_id"] == sid].sort_values("scale_pct")
         wd = wi[wi["series_id"] == sid]
         wrows = []
         for r in w.itertuples():
-            daily = wd[wd["scale_pct"] == r.scale_pct].sort_values("horizon")["forecast"]
-            wrows.append({"scale_pct": int(r.scale_pct), "promo_total": rnd(r.promo_total, 1),
-                          "forecast_total": rnd(r.forecast_total, 1), "change_pct": rnd(r.change_pct, 2),
-                          "daily": [rnd(x, 1) for x in daily], "extrapolation": bool(r.extrapolation),
+            dly = wd[wd["scale_pct"] == r.scale_pct].sort_values("horizon")["forecast"]
+            wrows.append({"scale_pct": int(r.scale_pct), "promo_index": P(r.promo_total / C.HORIZON),
+                          "forecast_index": X(r.forecast_total / C.HORIZON), "change_pct": rnd(r.change_pct, 2),
+                          "daily_index": [X(x) for x in dly], "extrapolation": bool(r.extrapolation),
                           "below_history": bool(r.below_history)})
         tr = lt.loc[sid]
         files[s["slug"]] = {
             "series_id": sid, "store_nbr": s["store_nbr"], "family": fam,
-            "history": {"start": iso(HISTORY_START), "sales": sales},
+            "scale": IX.SCALE_LABEL,
+            "promo_scale": IX.PROMO_SCALE_LABEL,
+            "history": {"start": iso(HISTORY_START), "index": daily, "week_start": week_start, "weekly_index": wk_index},
             "holdout": holdout,
             "forward": {"origin": iso(FORWARD_ORIGIN), "champion": ch[fam], "rows": frows},
             "whatif": {"origin": iso(FORWARD_ORIGIN), "model": "lightgbm (variant A, frozen config, refit at the forward origin)",
-                       "hist_max_promo": rnd(w["hist_max_promo"].iloc[0], 2), "hist_p95_promo": rnd(w["hist_p95_promo"].iloc[0], 2),
+                       "hist_max_promo_index": P(w["hist_max_promo"].iloc[0]),
+                       "hist_p95_promo_index": P(w["hist_p95_promo"].iloc[0]),
                        "rows": wrows},
             "trust": {"score": rnd(tr["score"], 2), "band": tr["band"], "components": {k: rnd(tr[k], 2) for k in COMPONENTS},
                       "hard_flags": describe_flags(list(tr["hard_flags"]))},
@@ -657,14 +726,20 @@ def build_series(inp, wi: pd.DataFrame, wt: pd.DataFrame) -> dict[str, dict]:
 # scenario
 # ------------------------------------------------------------------------------------------------
 def build_scenario(inp) -> dict:
-    fwd = forward_champion(inp)
-    tot = fwd.groupby("family")["forecast"].sum()
-    src = f"LightGBM champion forecast {iso(FORWARD_START)}..{iso(FORWARD_END)[5:]}, sum of 12 stores (real model output)"
+    """Family baselines in INDEX-DAYS: 14 x the equal-weighted mean over the family's 12 series of their 14-day mean
+    forecast index (= mean over the series of the 14-day sum of the daily forecast index). 1,400 = 14 average
+    training-period days for an average store of the family. No units (owner rule)."""
+    fwd = forward_champion(inp).copy()
+    fwd["idx"] = fwd["forecast"] / fwd["series_id"].map(inp["base"]) * 100
+    per = fwd.groupby(["family", "series_id"])["idx"].sum()
+    fam = per.groupby("family").mean()
+    src = (f"{{m}} champion forecast {iso(FORWARD_START)}..{iso(FORWARD_END)[5:]}: 14 x the equal-weighted mean 14-day "
+           "forecast index of the family's 12 store series (real model output, index-days)")
     return {
         "assumption_label": "Editable demonstration assumptions, not measured UAE uplift",
-        "families": [{"family": f, "baseline_14d": float(tot[f]),
-                      "baseline_source": src if champions(inp)[f] == "lightgbm" else
-                      f"{MODEL_LABEL[champions(inp)[f]]} champion forecast, sum of 12 stores (real model output)"}
+        "baseline_unit": "index-days (1,400 = 14 average training-period days for an average store)",
+        "families": [{"family": f, "baseline_14d": float(fam[f]),
+                      "baseline_source": src.format(m=MODEL_LABEL[champions(inp)[f]])}
                      for f in C.FAMILIES],
         "events": SCENARIO_EVENTS,
         "events_note": "Event percentages are placeholders for a planner to edit. They were not estimated from any UAE data.",
@@ -720,17 +795,18 @@ def build_sop(inp, wt: pd.DataFrame) -> dict:
     lt = latest_trust(inp)
     tw = inp["trust_weights"]["weights"]
     rows = [{"series_id": r["series_id"], "store_nbr": int(r["store_nbr"]), "family": r["family"],
-             "stat_forecast": rnd(r["forecast_14d"], 2), "p10": rnd(r["p10"], 2), "p90": rnd(r["p90"], 2),
-             "trust_score": rnd(r["score"], 2), "trust_band": r["band"]}
+             "stat_index": rnd(r["forecast_14d_index"], 2), "p10_index": rnd(r["p10_14d_index"], 2),
+             "p90_index": rnd(r["p90_14d_index"], 2), "trust_score": rnd(r["score"], 2), "trust_band": r["band"]}
             for _, r in lt.sort_values(["store_nbr", "family"]).iterrows()]
     total = float(lt["forecast_14d"].sum())
     rev = lt[lt["band"] == "Review"]
     name = lambda r: f"Store {int(r['store_nbr'])} · {fam_label(r['family'])}"
 
     why = lambda r: ("forced by a hard flag" if len(r["hard_flags"]) else "score below 60")
-    top_risks = [f"{name(r)}: Review band (score {r['score']:.0f}, {why(r)}), 14-day forecast {fmt_int(r['forecast_14d'])} "
-                 f"units (sum of daily P10–P90 {fmt_int(r['p10'])}–{fmt_int(r['p90'])})."
-                 for _, r in rev.sort_values("forecast_14d", ascending=False).head(5).iterrows()]
+    top_risks = [f"{name(r)}: Review band (score {r['score']:.0f}, {why(r)}), 14-day forecast index "
+                 f"{r['forecast_14d_index']:.0f} (14-day total P10–P90 {r['p10_14d_index']:.0f}–{r['p90_14d_index']:.0f}; "
+                 "100 = the series' average training-period day)."
+                 for _, r in rev.sort_values("priority_rank").head(5).iterrows()]
 
     pb = persistent_bias(inp)
     if pb:
@@ -740,32 +816,42 @@ def build_sop(inp, wt: pd.DataFrame) -> dict:
     else:
         persist = [f"No family had a champion bias of the same sign beyond ±{BIAS_RULE_PP:.0f} % on both calibration and holdout."]
 
-    queue = [f"{i + 1}. {name(r)} (score {r['score']:.0f}, priority {r['priority']:.2f}): {reason_for(r, tw)}."
+    queue = [f"{i + 1}. {name(r)} (score {r['score']:.0f}, priority rank {int(r['priority_rank'])}): {reason_for(r, tw)}."
              for i, (_, r) in enumerate(rev.sort_values("priority", ascending=False).iterrows())]
 
     w0 = wt[wt["scale_pct"] == 0].set_index("series_id")
     w50 = wt[wt["scale_pct"] == 50].set_index("series_id")
     promo = []
-    flagged = lt[lt["hard_flags"].apply(lambda f: "promo_above_p95" in list(f))].sort_values("forecast_14d", ascending=False)
+    flagged = lt[lt["hard_flags"].apply(lambda f: "promo_above_p95" in list(f))].sort_values("priority_rank")
+    pbase = inp["promo_base"]
     for _, r in flagged.head(4).iterrows():
-        promo.append(f"{name(r)}: planned promotions average {r['promo_plan_mean']:.1f} promoted items per day, above this "
-                     f"series' historical 95th percentile of 14-day means ({r['promo_p95']:.1f}); the forecast extrapolates "
-                     "beyond the promotion intensity the model has seen.")
+        pm = pbase.get(r["series_id"])
+        promo.append(f"{name(r)}: planned promotions average promo index {IX.to_index(r['promo_plan_mean'], pm):.0f}, above "
+                     f"this series' historical 95th percentile of 14-day means (promo index {IX.to_index(r['promo_p95'], pm):.0f}; "
+                     "100 = the series' mean promoted-item count up to the origin); the forecast extrapolates beyond the "
+                     "promotion intensity the model has seen.")
     cand = w50[~w50["extrapolation"]].sort_values("change_pct", ascending=False).head(3)
     for sid, r in cand.iterrows():
         st, fam = sid.split("|")
+        b = inp["base"][sid]
         promo.append(f"Store {st} · {fam_label(fam)}: a +50 % promotion plan is associated with a model-predicted change of "
-                     f"{r['change_pct']:+.1f} % in the 14-day forecast ({fmt_int(w0.loc[sid, 'forecast_total'])} → "
-                     f"{fmt_int(r['forecast_total'])} units); an association learned from history, not a causal uplift.")
+                     f"{r['change_pct']:+.1f} % in the 14-day forecast (index "
+                     f"{IX.to_index(w0.loc[sid, 'forecast_total'] / C.HORIZON, b):.0f} → "
+                     f"{IX.to_index(r['forecast_total'] / C.HORIZON, b):.0f}); an association learned from history, "
+                     "not a causal uplift.")
 
     fva = simulate_fva(inp)
     p = inp["panel"]
-    last14 = p[(p["date"] > FORWARD_ORIGIN - pd.Timedelta(days=C.HORIZON)) & (p["date"] <= FORWARD_ORIGIN)]["sales"].sum()
-    rev_share = rev["forecast_14d"].sum() / total * 100
+    # equal-weighted comparisons only (a volume-weighted ratio would be one more equation on the private bases)
+    l14 = p[(p["date"] > FORWARD_ORIGIN - pd.Timedelta(days=C.HORIZON)) & (p["date"] <= FORWARD_ORIGIN)
+            & (p["closed"] == 0) & p["sales"].notna()]
+    last_idx = (l14.groupby("series_id")["sales"].mean() / inp["base"]).mean() * 100
+    fwd_idx = lt["forecast_14d_index"].mean()
     disc = [
-        f"The chain 14-day statistical forecast is {fmt_int(total)} units, {(total / last14 - 1) * 100:+.1f} % versus the "
-        f"last 14 observed days ({fmt_int(last14)} units).",
-        f"Start with the {len(rev)} Review-band series: they carry {rev_share:.1f} % of the 14-day forecast volume.",
+        f"The chain 14-day statistical forecast is {fmt_int(total)} units (all 96 series). The average series is forecast "
+        f"at index {fwd_idx:.1f} versus {last_idx:.1f} over the last 14 observed days ({(fwd_idx / last_idx - 1) * 100:+.1f} %, "
+        "equal-weighted over series; 100 = a series' average training-period day).",
+        f"Start with the {len(rev)} Review-band series ({len(rev) / len(lt) * 100:.0f} % of the 96 series), in priority order.",
         (f"Persistent bias: {', '.join(fam_label(x['family']) for x in pb)} — agree whether a family-level correction is justified."
          if pb else
          "No family shows persistent champion bias on both calibration and holdout, so blanket family-level adjustments are "
@@ -792,7 +878,14 @@ def build_sop(inp, wt: pd.DataFrame) -> dict:
                 "stage": "holdout",
                 "champion_wape": fva["champion_wape"], "simulated_wape": fva["simulated_wape"], "fva_pp": fva["fva_pp"],
                 "n_adjusted": fva["n_adjusted"], "n_decisions": fva["n_decisions"]},
-        "notes": ["stat_forecast = 14-day sum of the champion forecast; p10 / p90 = sums of daily bounds (conservative)."],
+        "scale": IX.SCALE_LABEL + "; 14-day values = mean daily value over the 14 days / series base x 100",
+        "notes": ["stat_index = the champion 14-day forecast as an index: mean daily forecast over the 14 days ÷ the "
+                  "series' mean daily sales in the training period before the first selection origin (2015-06-01 to "
+                  "2017-02-06) × 100, so 100 = an average training-period day. p10_index / p90_index = the frozen "
+                  "14-day-total P10–P90 band on the same scale.",
+                  "Per-series units are not published (Kaggle competition rules: raw competition data is not "
+                  "redistributed). Converting an index back to units needs the series base, which only someone with "
+                  "the competition data can compute locally (scripts/08_export_dashboard.py, src/indexing.py)."],
     }
 
 

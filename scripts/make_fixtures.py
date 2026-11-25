@@ -85,23 +85,33 @@ def trust_components(seed):
 
 
 def make_series(store, fam, idx):
+    """Synthetic per-series file on the index scale (100 = an average day), like the published contract."""
     n = (LAST - START).days + 1
-    level = LEVEL[fam] * (0.6 + 0.1 * idx)
-    days, sales = synth_series(level, n, 100 + idx)
+    level = 100.0 * (0.9 + 0.05 * idx)
+    days, idxv = synth_series(level, n, 100 + idx)
     g = np.random.default_rng(200 + idx)
     champ = ["lightgbm", "holt_winters", "seasonal_naive", "lightgbm", "moving_average", "lightgbm"][idx]
+    hist_start = date(2017, 1, 1)
+    hist = idxv[(hist_start - START).days:]
+    weeks, wvals = [], []
+    w = START
+    while w + timedelta(days=6) <= LAST:
+        vals = [v for v in idxv[(w - START).days:(w - START).days + 7] if v is not None]
+        weeks.append(d(w))
+        wvals.append(round(sum(vals) / len(vals), 1) if vals else None)
+        w += timedelta(days=7)
     holdout = []
     for o in cal["stages"]["holdout"]:
         od = date.fromisoformat(o)
         rows = []
         for h in range(1, 15):
             t = od + timedelta(days=h)
-            a = sales[(t - START).days]
+            a = idxv[(t - START).days]
             base = level * DOW[t.weekday()] * 1.13
             models = {m: round(float(base * g.lognormal(0, 0.08)), 1) for m in MODELS}
             c = models[champ]
-            rows.append({"date": d(t), "h": h, "actual": a, "p10": round(c * 0.82, 1), "p90": round(c * 1.18, 1),
-                         "models": models})
+            rows.append({"date": d(t), "h": h, "actual_index": a, "p10_index": round(c * 0.82, 1),
+                         "p90_index": round(c * 1.18, 1), "forecast_index": c})
         holdout.append({"origin": o, "champion": champ, "rows": rows})
     frows = []
     for h in range(1, 15):
@@ -109,26 +119,27 @@ def make_series(store, fam, idx):
         base = level * DOW[t.weekday()] * 1.15
         models = {m: round(float(base * g.lognormal(0, 0.08)), 1) for m in MODELS}
         c = models[champ]
-        frows.append({"date": d(t), "h": h, "forecast": c, "p10": round(c * 0.8, 1), "p90": round(c * 1.2, 1),
-                      "onpromotion": float(g.integers(0, 20)), "models": models})
-    promo_total = sum(r["onpromotion"] for r in frows)
-    fc_total = sum(r["forecast"] for r in frows)
+        frows.append({"date": d(t), "h": h, "forecast_index": c, "p10_index": round(c * 0.8, 1),
+                      "p90_index": round(c * 1.2, 1), "promo_index": float(g.integers(40, 200)), "models_index": models})
+    promo_mean = sum(r["promo_index"] for r in frows) / 14
+    fc_mean = sum(r["forecast_index"] for r in frows) / 14
     wrows = []
     for sc in [-100, -50, 0, 50, 100]:
         mult = 1 + 0.0009 * sc * (1 + 0.3 * idx)
-        daily = [round(r["forecast"] * mult, 1) for r in frows]
-        tot = sum(daily)
-        wrows.append({"scale_pct": sc, "promo_total": round(promo_total * (1 + sc / 100), 1),
-                      "forecast_total": round(tot, 1), "change_pct": round(100 * (tot / fc_total - 1), 2),
-                      "daily": daily, "extrapolation": sc >= 100 or (sc >= 50 and idx % 2 == 0)})
+        daily = [round(r["forecast_index"] * mult, 1) for r in frows]
+        m = sum(daily) / 14
+        wrows.append({"scale_pct": sc, "promo_index": round(promo_mean * (1 + sc / 100), 1),
+                      "forecast_index": round(m, 1), "change_pct": round(100 * (m / fc_mean - 1), 2),
+                      "daily_index": daily, "extrapolation": sc >= 100 or (sc >= 50 and idx % 2 == 0)})
     score = SCORES[(store, fam)]
     flags = [f"{F}: interval coverage below 50 % in last window"] if idx == 2 else []
     return {
         "series_id": f"{store}|{fam}", "store_nbr": store, "family": fam,
-        "history": {"start": d(START), "sales": sales},
+        "scale": f"{F} index (series training-period mean = 100)", "promo_scale": f"{F} promo index",
+        "history": {"start": d(hist_start), "index": hist, "week_start": weeks, "weekly_index": wvals},
         "holdout": holdout,
         "forward": {"origin": d(LAST), "champion": champ, "rows": frows},
-        "whatif": {"origin": d(LAST), "hist_max_promo": 40.0, "hist_p95_promo": 22.0, "rows": wrows},
+        "whatif": {"origin": d(LAST), "hist_max_promo_index": 400.0, "hist_p95_promo_index": 180.0, "rows": wrows},
         "trust": {"score": round(score, 1), "band": band(score, flags), "components": trust_components(idx),
                   "hard_flags": flags},
     }
@@ -161,25 +172,27 @@ def main():
     # overview
     hist_days = [LAST - timedelta(days=i) for i in range(89, -1, -1)]
     tot_level = sum(LEVEL.values()) * len(STORES)
-    hist = [{"date": d(x), "actual": round(float(tot_level * DOW[x.weekday()] * rng.lognormal(0, 0.05)), 1)}
+    hist = [{"date": d(x), "mean_index": round(float(100 * DOW[x.weekday()] * rng.lognormal(0, 0.05)), 1)}
             for x in hist_days]
     fc = []
     for h in range(1, 15):
         x = LAST + timedelta(days=h)
-        v = float(tot_level * DOW[x.weekday()] * 1.02)
-        fc.append({"date": d(x), "forecast": round(v, 1), "p10": round(v * 0.9, 1), "p90": round(v * 1.1, 1)})
+        v = float(100 * DOW[x.weekday()] * 1.02)
+        fc.append({"date": d(x), "mean_index": round(v, 1)})
     keys = sorted(SCORES, key=lambda k: SCORES[k])
     champs = {f: MODELS[i % 5] for i, f in enumerate(FAMILIES)}
     files["overview.json"] = {
-        "kpis": {"forecast_14d_total": {"value": round(sum(r["forecast"] for r in fc), 1), "start": d(FWD0),
+        "kpis": {"forecast_14d_total": {"value": round(sum(r["mean_index"] for r in fc) * tot_level / 100, 1), "start": d(FWD0),
                                         "end": d(FWD1)},
                  "holdout_wape": {"value": 12.3, "model": f"{F} champion per family"},
                  "holdout_bias": {"value": -1.2, "model": f"{F} champion per family"},
                  "review_exceptions": {"value": sum(1 for k in SCORES if band(SCORES[k]) == "Review"), "of": 96},
                  "interval_coverage": {"value": 77.0, "target": 80.0}},
-        "outlook": {"history": hist, "forecast": fc, "band_method": f"{F}: placeholder band method"},
+        "outlook": {"scale": f"{F} equal-weighted mean index", "history": hist, "forecast": fc,
+                    "chain_band_holdout_coverage": 80.0, "band_note": f"{F}: placeholder band note"},
         "top_exceptions": [{"series_id": f"{s}|{f}", "store_nbr": s, "family": f, "trust_score": round(SCORES[(s, f)], 1),
-                            "band": band(SCORES[(s, f)]), "reason": f"{F}: placeholder reason"} for s, f in keys[:5]],
+                            "band": band(SCORES[(s, f)]), "reason": f"{F}: placeholder reason", "priority_rank": i + 1}
+                           for i, (s, f) in enumerate(keys[:5])],
         "ml_wins": {"families_won": sum(1 for v in champs.values() if v == "lightgbm"), "n_families": 8,
                     "champions": champs},
         "findings": [f"{F}: finding one placeholder.", f"{F}: finding two placeholder.",
@@ -198,23 +211,22 @@ def main():
         w += timedelta(days=7)
     by_fam = {}
     for f in FAMILIES:
-        vals = [round(float(LEVEL[f] * 7 * 12 * (1 + 0.1 * np.sin(i / 8)) * rng.lognormal(0, 0.05)), 1)
+        vals = [round(float(100 * (1 + 0.1 * np.sin(i / 8)) * rng.lognormal(0, 0.05)), 1)
                 for i in range(len(weeks))]
         by_fam[f] = vals
     files["demand.json"] = {
-        "weekly": {"week_start": [d(x) for x in weeks], "by_family": by_fam},
+        "weekly": {"week_start": [d(x) for x in weeks], "family_index": by_fam, "definition": f"{F} equal-weighted"},
         "dow_profile": {f: [round(float(x * rng.uniform(0.97, 1.03)), 3) for x in DOW] for f in FAMILIES},
-        "volatility": [{"store_nbr": s["store_nbr"], "family": f, "mean": round(LEVEL[f], 1),
+        "volatility": [{"store_nbr": s["store_nbr"], "family": f,
                         "cv": round(float(rng.uniform(0.1, 0.6)), 3), "zero_share": 0.0}
                        for s in STORES for f in FAMILIES],
-        "promo_bins": {f: [{"bin": b, "n_days": int(rng.integers(50, 400)),
-                            "mean_sales": round(LEVEL[f] * (1 + 0.1 * i), 1),
-                            "median_sales": round(LEVEL[f] * (0.97 + 0.1 * i), 1)}
+        "promo_bins": {f: [{"bin": b, "n_days": int(rng.integers(50, 400)), "mean_index": round(1 + 0.05 * i, 3),
+                            "n_stores": 12}
                            for i, b in enumerate(["0", "1-5", "6-15", "16+"])] for f in FAMILIES},
         "promo_frequency": [{"store_nbr": s["store_nbr"], "family": f, "promo_day_share": round(float(rng.uniform(0.1, 0.9)), 3)}
                             for s in STORES for f in FAMILIES],
-        "holiday_effect": [{"family": f, "holiday_mean": round(LEVEL[f] * 1.05, 1), "normal_mean": round(LEVEL[f], 1),
-                            "change_pct": round(float(rng.uniform(-15, 20)), 1), "n_holiday_days": 30} for f in FAMILIES],
+        "holiday_effect": [{"family": f, "change_pct": round(float(rng.uniform(-15, 20)), 1), "n_holiday_days": 30}
+                           for f in FAMILIES],
         "notes": [f"{F}: promo bins show association, not causation."],
     }
 
@@ -236,7 +248,7 @@ def main():
                                     "wape": round(wape, 2), "bias": round(float(rng.normal(0, 3)), 2),
                                     "mae": round(wape * 3, 2), "rmse": round(wape * 4.2, 2), "n": 1000})
     files["arena.json"] = {
-        "metrics": metrics,
+        "metrics": metrics, "mae_unit": f"{F} index points",
         "champions": {f: {"model": champs[f], "selection_wape": round(float(rng.uniform(8, 20)), 2),
                           "selection_bias": round(float(rng.normal(0, 2)), 2)} for f in FAMILIES},
         "variant_comparison": [{"stage": st, "family": f, "wape_A": round(float(rng.uniform(8, 18)), 2),
@@ -249,28 +261,30 @@ def main():
         "method": f"{F}: split conformal placeholder", "level": 80.0,
         "quantiles": [{"family": f, "bucket": b, "q_lo": -0.2, "q_hi": 0.2} for f in FAMILIES for b in ["1-7", "8-14"]],
         "calibration_coverage": 80.0,
-        "holdout": {"coverage": 77.0, "mean_width": 35.0,
+        "width_unit": f"{F} index points",
+        "holdout": {"coverage": 77.0, "mean_width": 35.0, "mean_width_pct": 36.0,
                     "by_family": [{"family": f, "coverage": round(float(rng.uniform(65, 90)), 1),
-                                   "mean_width": round(float(rng.uniform(25, 45)), 1)} for f in FAMILIES],
-                    "by_horizon": [{"horizon": h, "coverage": round(80 - h * 0.4, 1), "mean_width": round(30 + h, 1)}
+                                   "mean_width": round(float(rng.uniform(25, 45)), 1), "mean_width_pct": 36.0}
+                                  for f in FAMILIES],
+                    "by_horizon": [{"horizon": h, "coverage": round(80 - h * 0.4, 1), "mean_width": round(30 + h, 1), "mean_width_pct": 36.0}
                                    for h in range(1, 15)]},
     }
 
     latest = []
     for (s, f), sc in SCORES.items():
         flags = [f"{F}: placeholder hard flag"] if (s + len(f)) % 17 == 0 else []
-        fc14 = round(LEVEL[f] * 14 * 1.1, 1)
+        fc14 = round(float(rng.uniform(85, 125)), 1)
         latest.append({"series_id": f"{s}|{f}", "store_nbr": s, "family": f, "score": round(sc, 1),
                        "band": band(sc, flags), "components": trust_components(s * 7 + len(f)), "hard_flags": flags,
-                       "forecast_14d": fc14, "p10_14d": round(fc14 * 0.85, 1), "p90_14d": round(fc14 * 1.15, 1),
-                       "priority": 0.0})
-    tot = sum(r["forecast_14d"] for r in latest)
-    for r in latest:
-        r["priority"] = round((100 - r["score"]) * r["forecast_14d"] / tot, 4)
+                       "forecast_14d_index": fc14, "p10_14d_index": round(fc14 * 0.85, 1),
+                       "p90_14d_index": round(fc14 * 1.15, 1), "priority_rank": 0})
+    order = sorted(latest, key=lambda r: (100 - r["score"]) * LEVEL[r["family"]], reverse=True)
+    for i, r in enumerate(order):
+        r["priority_rank"] = i + 1
     files["trust.json"] = {
         "weights": {"accuracy": 0.35, "interval": 0.2, "stability": 0.2, "agreement": 0.15, "completeness": 0.1},
         "bands": [{"min": 80, "band": "Accept"}, {"min": 60, "band": "Monitor"}, {"min": 0, "band": "Review"}],
-        "latest_origin": d(LAST), "latest": latest,
+        "latest_origin": d(LAST), "scale": f"{F} index", "latest": latest,
         "validation": {"n_windows": 576, "spearman": 0.21,
                        "wape_by_band": [{"band": "Accept", "n": 300, "wape": 9.1}, {"band": "Monitor", "n": 200, "wape": 12.4},
                                         {"band": "Review", "n": 76, "wape": 18.8}],
@@ -283,7 +297,8 @@ def main():
 
     files["scenario.json"] = {
         "assumption_label": "Editable demonstration assumptions, not measured UAE uplift",
-        "families": [{"family": f, "baseline_14d": round(LEVEL[f] * 14 * 12, 1),
+        "baseline_unit": f"{F} index-days",
+        "families": [{"family": f, "baseline_14d": round(float(rng.uniform(1300, 1500)), 1),
                       "baseline_source": f"{F}: champion forward forecast placeholder"} for f in FAMILIES],
         "events": [{"id": "ramadan", "label": "Ramadan", "low": 5, "base": 15, "high": 30},
                    {"id": "eid_al_fitr", "label": "Eid al-Fitr", "low": 10, "base": 25, "high": 45},
@@ -295,9 +310,9 @@ def main():
     }
 
     files["sop.json"] = {
-        "origin": d(LAST), "horizon_end": d(FWD1),
+        "origin": d(LAST), "horizon_end": d(FWD1), "scale": f"{F} index",
         "rows": [{"series_id": r["series_id"], "store_nbr": r["store_nbr"], "family": r["family"],
-                  "stat_forecast": r["forecast_14d"], "p10": r["p10_14d"], "p90": r["p90_14d"],
+                  "stat_index": r["forecast_14d_index"], "p10_index": r["p10_14d_index"], "p90_index": r["p90_14d_index"],
                   "trust_score": r["score"], "trust_band": r["band"]} for r in latest],
         "reason_codes": ["Upcoming promotion", "Market intelligence", "Supply disruption", "Exceptional event",
                          "Suspected forecast error"],

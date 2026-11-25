@@ -1,5 +1,7 @@
 # Forecast vs Instinct
 
+**Live dashboard: https://akashgajjar07-hue.github.io/forecast-vs-instinct/**
+
 ### AI-Powered FMCG Demand Planning & Forecast Intelligence
 
 *Beyond predicting demand. Knowing when to trust the prediction.*
@@ -32,6 +34,20 @@ A 14-day demand forecasting and planning project on **real grocery data from Cor
 9. [Limitations (summary)](#limitations-summary)
 10. [About the author](#about-the-author)
 11. [Citation and licence](#citation-and-licence)
+
+## Data licence
+
+Built on the Kaggle Store Sales – Time Series Forecasting competition data (Corporación Favorita). Raw competition data is not redistributed; the site shows only aggregated/indexed values and model outputs. Reproduce by downloading the data from Kaggle after accepting the competition rules.
+
+Every per-series value (one store × one family) on the dashboard, in the S&OP export and in the planner workbook is an
+**index**: value ÷ the series' mean daily sales on open days in the training period before the first selection origin
+(2015-06-01 to 2017-02-06) × 100, so 100 = an average training-period day. Planned promotions are a promo index
+(count ÷ the series' mean promoted-item count up to the forecast origin × 100). Family and chain series (the
+Demand Explorer weekly lines, the chain outlook) are **equal-weighted** means of their member series' indexes, so
+every store counts the same and no volumes can be recovered from them; family error metrics are percentages or on the
+index scale. The bases are never published. The only unit values are **portfolio totals over all 96 series** (the
+chain 14-day forecast, portfolio MAE / RMSE / band width). See
+[`docs/data_contract.md`](docs/data_contract.md) and [`docs/agent_notes/compliance.md`](docs/agent_notes/compliance.md).
 
 ---
 
@@ -157,8 +173,8 @@ The index separates **Accept from the rest** well. It does not separate Monitor 
 
 The last actual date is 2017-08-15. The pipeline produces a forward forecast for 2017-08-16 to 2017-08-29 and an S&OP demand review pack from it (`docs/data/sop.json`):
 
-- The chain 14-day statistical forecast is **2,119,685 units**, 1.6 % below the last 14 observed days (2,153,422 units).
-- **22 of 96 series are in Review** (Monitor 39, Accept 35). They carry 14.3 % of the forecast volume. Start there, in priority order (priority = (100 − score) × share of volume).
+- The chain 14-day statistical forecast is **2,119,685 units** (all 96 series). The average series is forecast 2.4 % below its last 14 observed days (equal-weighted over series, on the index scale).
+- **22 of 96 series are in Review** (Monitor 39, Accept 35). Start there, in priority order (priority = (100 − score) × share of volume; only the rank is published).
 - The top two risks are **store 54 BEVERAGES** (score 24, weakest component: interval reliability) and **store 38 BEVERAGES** (score 36, weakest component: accuracy).
 - **Persistent bias:** BEVERAGES was under-forecast on both calibration (−3.4 %) and holdout (−2.4 %). Discuss whether a family-level correction is justified.
 - **13 series have planned promotions above their historical 95th percentile.** Confirm those promotion plans before accepting the forecasts (and remember Q5: this flag did not predict higher error on the holdout).
@@ -193,7 +209,7 @@ Mobile (390 px): ![Overview on mobile](docs/assets/screenshots/overview_390.png)
 
 Demo: ![Dashboard demo](presentations/demo.gif)
 
-The **UAE Scenario Lab** is a hypothetical planning calculator. Its baselines are real model forecasts for Ecuador, but its event percentages (Ramadan, Eid, summer and so on) are **editable demonstration assumptions, not measured UAE uplift**.
+The **UAE Scenario Lab** is a hypothetical planning calculator. Its baselines are real model forecasts for Ecuador, expressed in **index-days** (14 × the equal-weighted mean 14-day forecast index of the family's 12 series; 1,400 = 14 average training-period days for an average store), but its event percentages (Ramadan, Eid, summer and so on) are **editable demonstration assumptions, not measured UAE uplift**.
 
 ---
 
@@ -332,6 +348,6 @@ I built this project to show how I would approach a planner's real question: not
 
 **Data:** Alexis Cook, DanB, inversion, Ryan Holbrook (2021). *Store Sales – Time Series Forecasting*. Kaggle. https://www.kaggle.com/competitions/store-sales-time-series-forecasting
 
-The data belongs to its owners (Kaggle / Corporación Favorita) and is **not included** in this repository. Only model outputs and aggregates for the 96 series are published. Please check the competition rules on Kaggle before reusing anything derived from the data.
+The data belongs to its owners (Kaggle / Corporación Favorita) and is **not included** in this repository. Built on the Kaggle Store Sales – Time Series Forecasting competition data (Corporación Favorita). Raw competition data is not redistributed; the site shows only aggregated/indexed values and model outputs. Reproduce by downloading the data from Kaggle after accepting the competition rules. Per-series values are published only as indices with private bases (see [Data licence](#data-licence)). Please check the competition rules on Kaggle before reusing anything derived from the data.
 
 **Code:** MIT licence, see [LICENSE](LICENSE). The vendored Plotly build in `docs/assets/vendor/` keeps its own licence (`PLOTLY_LICENSE.txt`).

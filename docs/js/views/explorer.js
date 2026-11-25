@@ -1,4 +1,4 @@
-import { load, loadSeries, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, slugOf, famLabel, showEmpty, showLoading, addDays } from "../core.js";
+import { load, loadSeries, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, slugOf, famLabel, showEmpty, showLoading, INDEX_AXIS, INDEX_NOTE } from "../core.js";
 
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -17,12 +17,12 @@ export async function render(el, params, ctx) {
   <div class="controls" role="group" aria-label="Explorer filters">
     <label class="field"><span>Family</span><select id="ex-family">${options([["ALL", "All families"], ...families.map((f) => [f, famLabel(f)])], state.family)}</select></label>
     <label class="field"><span>Store</span><select id="ex-store">${options([["ALL", "All stores"], ...stores.map((s) => [s.store_nbr, `Store ${s.store_nbr} · ${s.city} (type ${s.type})`])], state.store)}</select></label>
-    <p class="small muted" style="margin:0;flex:1 1 220px">Store-level history comes from per-series files and needs one family selected.</p>
+    <p class="small muted" style="margin:0;flex:1 1 220px">Store-level history comes from per-series files, needs one family selected and is shown as an index (training-period mean = 100). Family series are equal-weighted indexes; no units are shown.</p>
   </div>
-  <section class="card"><div class="card-head"><h2 id="ex-weekly-title">Weekly sales</h2><span class="muted small">observed units per week</span></div><div id="ex-weekly" class="chart"></div></section>
+  <section class="card"><div class="card-head"><h2 id="ex-weekly-title">Weekly sales</h2><span class="muted small" id="ex-weekly-unit">equal-weighted index, training-period mean = 100</span></div><div id="ex-weekly" class="chart"></div><p class="caption" id="ex-weekly-cap" hidden></p></section>
   <div class="grid g2">
-    <section class="card"><h2>Day-of-week profile · chain level, all ${stores.length} stores</h2><div id="ex-dow" class="chart short"></div><p class="caption">Index: mean sales on that weekday relative to the series mean (1.0 = average day). Monday first.</p></section>
-    <section class="card"><h2>Holiday effect · chain level, all ${stores.length} stores</h2><div id="ex-hol" class="chart short"></div><p class="caption">Mean sales on national holidays vs normal days, per family. Observed difference, not a causal estimate.</p></section>
+    <section class="card"><h2>Day-of-week profile · chain level, all ${stores.length} stores</h2><div id="ex-dow" class="chart short"></div><p class="caption">Index: each series' mean sales on that weekday relative to its own average, averaged over the family's series with equal weight (1.0 = average day). Monday first.</p></section>
+    <section class="card"><h2>Holiday effect · chain level, all ${stores.length} stores</h2><div id="ex-hol" class="chart short"></div><p class="caption">Change in mean sales on national holidays vs normal days, per family (12 stores). Observed difference, not a causal estimate.</p></section>
   </div>
   <section class="card"><div class="card-head"><h2>Volatility map</h2><span class="muted small">coefficient of variation of daily sales, store × family</span></div><div id="ex-vol" class="chart tall"></div><p class="caption">Higher CV = harder to forecast. The selected store or family is outlined.</p></section>
   <div class="grid g2">
@@ -46,23 +46,32 @@ export async function render(el, params, ctx) {
   async function drawWeekly() {
     const box = el.querySelector("#ex-weekly");
     const title = el.querySelector("#ex-weekly-title");
+    const unit = el.querySelector("#ex-weekly-unit");
+    const cap = el.querySelector("#ex-weekly-cap");
     const wk = dem.weekly;
+    unit.textContent = "equal-weighted index, training-period mean = 100";
+    cap.textContent = `Family index = the plain average of its 12 store series' weekly indexes (each: mean daily sales over the week ÷ that series' mean daily sales in the training period × 100). Every store counts equally, so no unit volumes are shown. ${INDEX_NOTE}`;
+    cap.hidden = false;
     if (state.store === "ALL") {
       let y;
       if (state.family === "ALL") {
         y = wk.week_start.map((_, i) => {
           let t = 0, any = false;
-          for (const f of families) { const v = wk.by_family[f]?.[i]; if (v !== null && v !== undefined) { t += v; any = true; } }
-          return any ? t : null;
+          let k = 0;
+          for (const f of families) { const v = wk.family_index[f]?.[i]; if (v !== null && v !== undefined) { t += v; k += 1; any = true; } }
+          return any ? t / k : null;
         });
-        title.textContent = "Weekly sales · all families, all stores";
+        title.textContent = "Weekly sales index · all families, all stores (equal-weighted)";
       } else {
-        y = wk.by_family[state.family] || [];
-        title.textContent = `Weekly sales · ${famLabel(state.family)}, all stores`;
+        y = wk.family_index[state.family] || [];
+        title.textContent = `Weekly sales index · ${famLabel(state.family)}, all stores (equal-weighted)`;
       }
       if (!y.length) { showEmpty(box, "No weekly data for this selection."); return; }
-      plot(box, [{ x: wk.week_start, y, type: "scatter", mode: "lines", name: "Weekly sales", line: { color: C.actual, width: 1.6 } }],
-        { yaxis: { rangemode: "tozero", title: { text: "units / week" } }, hovermode: "x unified" }, `${title.textContent}: weekly observed sales line chart.`);
+      plot(box, [{ x: wk.week_start, y, type: "scatter", mode: "lines", name: "Weekly index", line: { color: C.actual, width: 1.6 },
+        hovertemplate: "week of %{x}: index %{y:,.1f}<extra></extra>" }],
+        { yaxis: { rangemode: "tozero", title: { text: INDEX_AXIS } }, hovermode: "x unified",
+          shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 100, y1: 100, line: { color: C.text2, dash: "dot", width: 1 } }] },
+        `${title.textContent}: weekly sales index line chart (training-period mean = 100).`);
       return;
     }
     if (state.family === "ALL") {
@@ -71,27 +80,24 @@ export async function render(el, params, ctx) {
       return;
     }
     const slug = slugOf(Number(state.store), state.family);
-    title.textContent = `Weekly sales · ${famLabel(state.family)}, store ${state.store}`;
+    title.textContent = `Weekly sales index · ${famLabel(state.family)}, store ${state.store}`;
     if (!index.some((s) => s.slug === slug)) { showEmpty(box, `No series file published for store ${state.store} × ${famLabel(state.family)}.`); return; }
     showLoading(box, "Loading series…");
     const ser = await loadSeries(slug);
     if (!ctx.isCurrent() || fSel.value !== state.family || sSel.value !== state.store) return;
-    const x = [], y = [], note = [];
-    const s = ser.history.sales;
-    // Align to Monday weeks like the chain series: first Monday on/after history.start.
-    const dow = new Date(ser.history.start + "T00:00:00Z").getUTCDay(); // 0 = Sunday
-    const off = (8 - dow) % 7;
-    for (let i = off; i + 7 <= s.length; i += 7) {
-      // Sum observed days only; closed or missing days are not imputed.
-      const wkVals = s.slice(i, i + 7).filter((v) => v !== null && v !== undefined);
-      const missing = 7 - wkVals.length;
-      x.push(addDays(ser.history.start, i));
-      y.push(wkVals.length ? wkVals.reduce((a, b) => a + b, 0) : null);
-      note.push(missing ? `<br>${missing} of 7 days missing or closed: observed days only, not imputed` : "");
-    }
-    plot(box, [{ x, y, type: "scatter", mode: "lines", name: "Weekly sales", line: { color: C.actual, width: 1.6 }, customdata: note,
-      hovertemplate: "week of %{x}: %{y:,.0f} units%{customdata}<extra></extra>" }],
-      { yaxis: { rangemode: "tozero", title: { text: "units / week" } }, hovermode: "x unified" }, `${title.textContent}: weekly observed sales line chart.`);
+    // One store x family: weekly index only (Monday weeks; mean daily sales over the week's open days ÷ the series'
+    // training-period mean × 100). Per-series units are never published.
+    const x = ser.history.week_start || [];
+    const y = ser.history.weekly_index || [];
+    if (!x.length) { showEmpty(box, "No weekly history in this series file."); return; }
+    unit.textContent = "weekly index, training-period mean = 100";
+    cap.textContent = `Weekly index: mean daily sales over the week's open days ÷ this series' mean daily sales in the training period × 100. ${INDEX_NOTE}`;
+    cap.hidden = false;
+    plot(box, [{ x, y, type: "scatter", mode: "lines", name: "Weekly index", line: { color: C.actual, width: 1.6 },
+      hovertemplate: "week of %{x}: index %{y:,.1f}<extra></extra>" }],
+      { yaxis: { rangemode: "tozero", title: { text: INDEX_AXIS } }, hovermode: "x unified",
+        shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 100, y1: 100, line: { color: C.text2, dash: "dot", width: 1 } }] },
+      `${title.textContent}: weekly sales index line chart (training-period mean = 100).`);
   }
 
   function drawDow() {
@@ -120,8 +126,8 @@ export async function render(el, params, ctx) {
     plot(box, [{
       x: rows.map((r) => famLabel(r.family)), y: rows.map((r) => r.change_pct), type: "bar", name: "Change on holidays",
       marker: { color: rows.map((r) => (r.change_pct >= 0 ? C.champion : C.orchid)), opacity: rows.map((r) => (state.family === "ALL" || r.family === state.family ? 1 : 0.3)) },
-      customdata: rows.map((r) => [r.holiday_mean, r.normal_mean, r.n_holiday_days]),
-      hovertemplate: "%{x}<br>%{y:+.1f} %<br>holiday mean %{customdata[0]:,.0f} vs normal %{customdata[1]:,.0f}<br>%{customdata[2]} holiday days<extra></extra>",
+      customdata: rows.map((r) => [r.n_holiday_days]),
+      hovertemplate: "%{x}<br>%{y:+.1f} %<br>%{customdata[0]} holiday days<extra></extra>",
     }], { yaxis: { title: { text: "% vs normal days" }, ticksuffix: " %" }, xaxis: { tickangle: -30 } }, "Holiday effect: percent change in mean sales on national holidays by family.");
   }
 
@@ -185,7 +191,7 @@ export async function render(el, params, ctx) {
     if (state.family === "ALL") {
       const bins = pb[fams[0]].map((b) => b.bin);
       const y = bins.map((_, i) => {
-        const vals = fams.map((f) => (pb[f][i] && pb[f][0].mean_sales ? (100 * pb[f][i].mean_sales) / pb[f][0].mean_sales : null)).filter((v) => v !== null);
+        const vals = fams.map((f) => (pb[f][i] && pb[f][0].mean_index ? (100 * pb[f][i].mean_index) / pb[f][0].mean_index : null)).filter((v) => v !== null);
         return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
       });
       title.textContent = `Sales by promotion intensity · index across families, chain level, all ${stores.length} stores`;
@@ -199,10 +205,11 @@ export async function render(el, params, ctx) {
     if (!rows.length) { showEmpty(box, "No promotion bins for this family."); return; }
     const x = rows.map((r) => r.bin);
     plot(box, [
-      { x, y: rows.map((r) => r.mean_sales), type: "bar", name: "Mean", marker: { color: C.periwinkle }, customdata: rows.map((r) => r.n_days), hovertemplate: "%{x}: mean %{y:,.0f} (%{customdata} days)<extra></extra>" },
-      { x, y: rows.map((r) => r.median_sales), type: "bar", name: "Median", marker: { color: C.orchid }, hovertemplate: "%{x}: median %{y:,.0f}<extra></extra>" },
-    ], { barmode: "group", xaxis: { title: { text: "items on promotion that day" }, type: "category" }, yaxis: { title: { text: "units / day" } } },
-    `Mean and median daily sales by promotion intensity for ${famLabel(state.family)}.`);
+      { x, y: rows.map((r) => r.mean_index * 100), type: "bar", name: "Mean index", marker: { color: C.periwinkle },
+        customdata: rows.map((r) => [r.n_days, r.n_stores]), hovertemplate: "%{x}: index %{y:.0f} (%{customdata[0]} store-days, %{customdata[1]} stores)<extra></extra>" },
+    ], { xaxis: { title: { text: "items on promotion that day" }, type: "category" }, yaxis: { title: { text: "index (store-family monthly mean = 100)" } },
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 100, y1: 100, line: { color: C.text2, dash: "dot", width: 1 } }] },
+    `Mean sales index by number of items on promotion for ${famLabel(state.family)} (each store-day relative to its store-family monthly mean).`);
   }
 
   function draw() {

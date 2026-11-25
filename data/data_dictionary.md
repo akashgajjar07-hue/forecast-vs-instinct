@@ -119,11 +119,11 @@ Every number on the site comes from one of these files, produced by `scripts/08_
 | `meta.json` | all | citation, caveats, data window, split calendar, scope, hero numbers, headline |
 | `overview.json` | Executive Overview | KPI cards, chain outlook (history + forward forecast with its own band), top exceptions, ML-win count, findings |
 | `series_index.json` | Explorer, Workspace, S&OP | the 96 series with store attributes and file slug |
-| `demand.json` | Demand Explorer | weekly totals, day-of-week profile, volatility, promotion bins and frequency, holiday effect |
+| `demand.json` | Demand Explorer | weekly equal-weighted family index, day-of-week profile, volatility, promotion bins (index) and frequency, holiday effect (% change) |
 | `arena.json` | Model Arena | metrics by stage × model × variant × slice (overall, family, store, horizon, horizon bucket, promo, holiday, week bucket), champions, variant A vs B |
 | `intervals.json` | Workspace, Exceptions, Methodology | quantiles, calibration and holdout coverage and width |
 | `trust.json` | Exception Centre, Overview | weights, bands, latest score per series with components and hard flags, holdout validation, calibration candidates |
-| `scenario.json` | UAE Scenario Lab | real 14-day baseline per family; **editable demonstration event assumptions**; Ecuador holiday analogue |
+| `scenario.json` | UAE Scenario Lab | real 14-day baseline per family in index-days (1,400 = 14 average training-period days for an average store); **editable demonstration event assumptions**; Ecuador holiday analogue |
 | `sop.json` | S&OP Demand Review | forward forecast per series with band, summary, reason codes, **simulated** FVA |
 | `series/<slug>.json` | Forecast Workspace | history, holdout forecasts by origin (all models + band), forward forecast, promotion what-if grid, trust |
 

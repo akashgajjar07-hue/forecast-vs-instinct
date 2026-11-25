@@ -3,7 +3,10 @@
 openpyxl stores formulas without cached values and LibreOffice is not assumed, so these tests carry a small
 evaluator for the Excel subset the workbook uses (SUM, SUMIF(S), COUNTIF, INDEX/MATCH, IF, TEXT, ...). It
 evaluates the workbook's own formula strings, so the checks below test what Excel will compute:
-  - Forecast totals = parquet sums; Exceptions score/band/priority = trust_scores.parquet (data tests)
+  - Forecast 14-day mean index = parquet sum / 14 / base x 100 (base recomputed here from the panel); portfolio and
+    family rows = equal-weighted means of the series index (family in index-days); the all-series 14-day total
+    (units) = parquet sum; Exceptions score/band/priority rank = trust_scores.parquet (data tests)
+  - the only unit values stored anywhere are the all-series 14-day total and the pooled leaderboard MAE/RMSE
   - Scenario sheet = src/scenario.run_scenario on the default inputs and on every shared JS/Python case
 """
 import importlib.util
@@ -98,6 +101,7 @@ def _text(x, fmt):
 
 FUNCS = {
     "SUM": lambda *a: sum(_flat(a)),
+    "AVERAGE": lambda *a: (lambda v: sum(v) / len(v))(list(_flat(a))),
     "MIN": lambda *a: min(_flat(a)),
     "MAX": lambda *a: max(_flat(a)),
     "IF": lambda c, a, b=lambda: False: a() if c() else b(),
@@ -113,6 +117,9 @@ FUNCS = {
     "MATCH": lambda v, rng, t=1: next(i + 1 for i, x in enumerate(rng) if _eq(x, v)),
     "SUMPRODUCT": lambda a, b: sum(float(x) * float(y) for x, y in zip(a, b)),
     "SUMIF": lambda rng, c, s: sum(y for x, y in zip(rng, s) if _crit(x, c)),
+    "AVERAGEIF": lambda rng, c, s: (lambda v: sum(v) / len(v))([y for x, y in zip(rng, s) if _crit(x, c)]),
+    "AVERAGEIFS": lambda s, *cr: (lambda v: sum(v) / len(v))(
+        [y for i, y in enumerate(s) if all(_crit(cr[k][i], cr[k + 1]) for k in range(0, len(cr), 2))]),
     "SUMIFS": lambda s, *cr: sum(y for i, y in enumerate(s)
                                  if all(_crit(cr[k][i], cr[k + 1]) for k in range(0, len(cr), 2))),
     "COUNTIF": lambda rng, c: sum(1 for x in rng if _crit(x, c)),
@@ -220,17 +227,26 @@ def test_key_cells_are_formulas(wb):
     fc, S = wb["Forecast"], BW.S
     tot = get_column_letter(BW.FC_TOTAL_COL)
     for r in range(BW.FC_FIRST, BW.FC_LAST + 1):
-        assert fc[f"{tot}{r}"].value == f"=SUM(E{r}:R{r})"
+        assert fc[f"{tot}{r}"].value == f"=AVERAGE(E{r}:R{r})"
         for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL):
             assert isinstance(fc.cell(r, c).value, float)
-    for r in range(BW.FC_TOTAL_ROW, BW.FC_TOTAL_ROW + 3):
-        assert all(is_formula(fc.cell(r, c)) for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL + 1))
+    for r in range(BW.FC_PORT_ROW, BW.FC_PORT_ROW + 3):
+        assert fc[f"{tot}{r}"].value == f"=AVERAGE(E{r}:R{r})"
+        assert all(fc.cell(r, c).value.startswith("=AVERAGEIF(") for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL))
+    for r in range(BW.FC_FAM_FIRST, BW.FC_FAM_LAST + 1):
+        assert fc[f"{tot}{r}"].value == f"=SUM(E{r}:R{r})"
+        assert all(fc.cell(r, c).value.startswith("=AVERAGEIFS(") for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL))
+    # the single unit value: one stored all-series 14-day total, no per-day chain values
+    assert isinstance(fc[f"{tot}{BW.FC_TOTAL_ROW}"].value, float)
+    assert all(fc.cell(BW.FC_TOTAL_ROW, c).value is None or isinstance(fc.cell(BW.FC_TOTAL_ROW, c).value, str)
+               for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL))
     summary = wb["Summary"]
     vals = [summary[f"B{r}"] for r in range(14, 33) if summary[f"A{r}"].value]
     assert len(vals) >= 15 and all(is_formula(c) for c in vals)
     ex = wb["Exceptions"]
     for r in range(BW.EX_FIRST, BW.EX_LAST + 1):
-        assert all(is_formula(ex[f"{c}{r}"]) for c in "AEFMNO")
+        assert all(is_formula(ex[f"{c}{r}"]) for c in "AEFMO")
+        assert ex[f"N{r}"].value == r - BW.EX_FIRST + 1  # stored priority rank, never the priority value
     ov = wb["Overrides"]
     for r in range(BW.OV_FIRST, BW.OV_LAST + 1):
         assert all(is_formula(ov[f"{c}{r}"]) for c in "DEIJKL")
@@ -251,7 +267,8 @@ def test_key_cells_are_formulas(wb):
 
 def test_scenario_formula_references(wb):
     sc, S = wb["Scenario"], BW.S
-    assert sc[S["baseline"]].value.startswith("=SUMIFS(Forecast!$S$5:$S$292,Forecast!$C$5:$C$292,B6,")
+    assert sc[S["baseline"]].value == (f"=SUMIFS(Forecast!$S${BW.FC_FAM_FIRST}:$S${BW.FC_FAM_LAST},"
+                                       f"Forecast!$C${BW.FC_FAM_FIRST}:$C${BW.FC_FAM_LAST},B6)")
     assert sc[S["family"]].value == BW.DEFAULT_FAMILY
     assert sc["C31"].value == "=MAX(0,$B$25*(1+B31))"
     assert sc["C37"].value == "=$B$27*MAX(0,$C$31-$B37)+$B$28*MAX(0,$B37-$C$31)"
@@ -284,13 +301,13 @@ def test_overrides_consensus_logic(ev):
     r = BW.OV_FIRST
     stat = ev.value("Overrides", f"E{r}")
     assert ev.value("Overrides", f"I{r}") == stat and ev.value("Overrides", f"L{r}") == ""
-    ev.set("Overrides", f"F{r}", 1000.0)
-    assert ev.value("Overrides", f"I{r}") == 1000.0
-    assert ev.value("Overrides", f"K{r}") == pytest.approx(1000 / stat - 1)
+    ev.set("Overrides", f"F{r}", 150.0)
+    assert ev.value("Overrides", f"I{r}") == 150.0
+    assert ev.value("Overrides", f"K{r}") == pytest.approx(150 / stat - 1)
     assert ev.value("Overrides", f"L{r}") == "Add a reason code"
     assert ev.value("Overrides", f"F{BW.OV_TOTAL_ROW}") == 1
-    total_stat = ev.value("Overrides", f"E{BW.OV_TOTAL_ROW}")
-    assert ev.value("Overrides", f"I{BW.OV_TOTAL_ROW}") == pytest.approx(total_stat - stat + 1000)
+    mean_stat = ev.value("Overrides", f"E{BW.OV_TOTAL_ROW}")  # mean index over the 96 series
+    assert ev.value("Overrides", f"I{BW.OV_TOTAL_ROW}") == pytest.approx(mean_stat + (150 - stat) / BW.N_SERIES)
     ev.set("Overrides", f"G{r}", "Upcoming promotion")
     assert ev.value("Overrides", f"L{r}") == ""
 
@@ -378,18 +395,24 @@ def test_scenario_cases_match_python(ev, case):
 def outputs():
     pd = pytest.importorskip("pandas")
     p = ROOT / "outputs" / "holdout"
-    if not (p / "champion_intervals.parquet").exists():
-        pytest.skip("pipeline outputs not present")
+    panel_path = ROOT / "data" / "processed" / "panel.parquet"
+    if not (p / "champion_intervals.parquet").exists() or not panel_path.exists():
+        pytest.skip("pipeline outputs or panel not present")
     ci = pd.read_parquet(p / "champion_intervals.parquet")
     fwd = ci[ci["stage"] == "forward"]
     tr = pd.read_parquet(p / "trust_scores.parquet")
     tr = tr[tr["origin"] == pd.Timestamp(BW.FORWARD_ORIGIN)]
-    return fwd, tr
+    # index base recomputed independently: mean open-day sales 2015-06-01..2017-02-06 (day before 1st selection origin)
+    panel = pd.read_parquet(panel_path)
+    first_sel = json.loads((ROOT / "config" / "split_calendar.json").read_text())["stages"]["selection"][0]
+    w = panel[(panel["date"] >= "2015-06-01") & (panel["date"] < first_sel) & (panel["closed"] == 0)]
+    base = w.dropna(subset=["sales"]).groupby("series_id")["sales"].mean()
+    return fwd, tr, base
 
 
 @pytest.mark.data
-def test_forecast_totals_equal_parquet(wb, ev, outputs):
-    fwd, _ = outputs
+def test_forecast_index_and_totals_equal_parquet(wb, ev, outputs):
+    fwd, _, base = outputs
     fc = wb["Forecast"]
     tot = get_column_letter(BW.FC_TOTAL_COL)
     sums = fwd.groupby("series_id")[["forecast", "p10", "p90"]].sum()
@@ -398,18 +421,56 @@ def test_forecast_totals_equal_parquet(wb, ev, outputs):
         sid, m = fc[f"A{r}"].value, fc[f"D{r}"].value
         seen.add(sid)
         col = {"Forecast": "forecast", "P10": "p10", "P90": "p90"}[m]
-        assert ev.value("Forecast", f"{tot}{r}") == pytest.approx(sums.loc[sid, col], rel=1e-12)
+        exp = sums.loc[sid, col] / 14 / base[sid] * 100
+        assert ev.value("Forecast", f"{tot}{r}") == pytest.approx(exp, abs=1e-4)
     assert seen == set(fwd["series_id"])
+    assert ev.value("Forecast", f"{tot}{BW.FC_TOTAL_ROW}") == pytest.approx(fwd["forecast"].sum(), rel=1e-12)
+    idx = sums.div(base.loc[sums.index], axis=0) * 100 / 14  # per-series 14-day mean index
     for k, col in enumerate(["forecast", "p10", "p90"]):
-        assert ev.value("Forecast", f"{tot}{BW.FC_TOTAL_ROW + k}") == pytest.approx(fwd[col].sum(), rel=1e-12)
+        assert ev.value("Forecast", f"{tot}{BW.FC_PORT_ROW + k}") == pytest.approx(idx[col].mean(), abs=1e-4)
+    fam = fwd[["series_id", "family"]].drop_duplicates().set_index("series_id")["family"]
+    idays = (idx["forecast"] * 14).groupby(fam).mean()  # index-days: 14 x equal-weighted family mean
+    for r in range(BW.FC_FAM_FIRST, BW.FC_FAM_LAST + 1):
+        assert ev.value("Forecast", f"{tot}{r}") == pytest.approx(idays[fc[f"C{r}"].value], abs=1e-3)
     # header dates are the 14 forward target days
     days = [fc.cell(BW.FC_HEADER_ROW, c).value for c in range(BW.FC_DATE_COL1, BW.FC_TOTAL_COL)]
     assert [d.date() for d in days] == sorted({d.date() for d in fwd["target_date"]})
 
 
 @pytest.mark.data
+def test_no_unit_values_except_portfolio(wb, outputs):
+    """Only two kinds of unit values may be stored: the all-series 14-day forecast total and the leaderboard MAE/RMSE
+    pooled over all 96 series. No stored number equals a per-series, per-family or per-day unit value (daily or 14-day
+    forecast/P10/P90 by series, family or day, chain daily totals, trust forecast_14d or priority)."""
+    fwd, tr, _ = outputs
+    forbidden = set()
+    for c in ["forecast", "p10", "p90"]:
+        forbidden |= {round(float(v), 6) for v in fwd[c]}
+        for keys in (["series_id"], ["family"], ["target_date"], ["family", "target_date"]):
+            forbidden |= {round(float(v), 6) for v in fwd.groupby(keys)[c].sum()}
+        if c != "forecast":  # chain P10 / P90 totals are not published either
+            forbidden.add(round(float(fwd[c].sum()), 6))
+    forbidden |= {round(float(v), 6) for v in tr["forecast_14d"]}
+    forbidden |= {round(float(v), 4) for v in tr["priority"]}
+    total = float(fwd["forecast"].sum())
+    found_total = 0
+    for ws in wb.worksheets:
+        for row in ws.iter_rows(values_only=True):
+            for v in row:
+                if isinstance(v, float) and abs(v) > 1:
+                    if abs(v - total) < 1e-6:
+                        found_total += 1
+                        continue
+                    assert round(v, 6) not in forbidden and round(v, 4) not in forbidden, (ws.title, v)
+    assert found_total == 1
+    # the only unit-labelled stored numbers outside the Forecast total are the leaderboard MAE / RMSE columns
+    acc = wb["Accuracy"]
+    assert "all 96 series" in acc["E4"].value and "all 96 series" in acc["F4"].value
+
+
+@pytest.mark.data
 def test_summary_and_scenario_baseline(ev, outputs):
-    fwd, tr = outputs
+    fwd, tr, base = outputs
     rows = {ev.wb["Summary"][f"A{r}"].value: f"B{r}" for r in range(14, 40) if ev.wb["Summary"][f"A{r}"].value}
     val = lambda lab: ev.value("Summary", rows[lab])  # noqa: E731
     assert val("Total 14-day forecast (units, all series)") == pytest.approx(fwd["forecast"].sum())
@@ -418,25 +479,38 @@ def test_summary_and_scenario_baseline(ev, outputs):
     assert val("Series in scope") == 96
     res = json.loads((ROOT / "outputs" / "holdout_results.json").read_text())
     assert val("Holdout WAPE of the champion") == pytest.approx(res["champion_system"]["wape"] / 100)
-    assert val("Consensus 14-day total after overrides") == pytest.approx(fwd["forecast"].sum())
-    base = fwd[fwd["family"] == BW.DEFAULT_FAMILY]["forecast"].sum()
-    assert ev.value("Scenario", BW.S["baseline"]) == pytest.approx(base)
+    idx14 = fwd.groupby("series_id")["forecast"].sum() / 14 / base.loc[fwd["series_id"].unique()] * 100
+    band = tr.set_index("series_id")["band"]
+    rev = idx14[band.loc[idx14.index] == "Review"].sum() / idx14.sum()  # equal weight per series, not volume
+    assert val("Review share of the 14-day forecast index (equal-weighted)") == pytest.approx(rev, abs=1e-6)
+    mean_idx = ev.value("Overrides", f"E{BW.OV_TOTAL_ROW}")
+    assert val("Consensus mean 14-day index after overrides") == pytest.approx(mean_idx)
+    assert val("Consensus vs statistical (mean index)") == pytest.approx(0)
+    f = fwd[fwd["family"] == BW.DEFAULT_FAMILY]
+    s14 = f.groupby("series_id")["forecast"].sum()
+    idays = float((s14 / base.loc[s14.index] * 100).mean())  # 14 x mean of 14-day mean index = mean 14-day index sum
+    assert ev.value("Scenario", BW.S["baseline"]) == pytest.approx(idays, abs=1e-3)
+    acc = {ev.wb["Accuracy"][f"A{r}"].value: r for r in range(BW.ACC["sys_first"], BW.ACC["champion_row"] + 1)}
+    h = pytest.importorskip("pandas").read_parquet(ROOT / "outputs/holdout/champion_intervals.parquet")
+    h = h[(h["stage"] == "holdout") & (h["closed"] == 0) & h["actual"].notna()]
+    w = ((h["p90"] - h["p10"]) / h["series_id"].map(base) * 100).mean()
+    assert ev.value("Accuracy", f"C{acc['Mean P10-P90 width (index points per series-day)']}") == pytest.approx(w)
 
 
 @pytest.mark.data
 def test_exceptions_match_trust_scores(ev, outputs):
-    _, tr = outputs
+    fwd, tr, base = outputs
     t = tr.set_index("series_id")
-    prev = math.inf
+    order = list(tr.sort_values("priority", ascending=False)["series_id"])
+    s14 = fwd.groupby("series_id")["forecast"].sum()
     for r in range(BW.EX_FIRST, BW.EX_LAST + 1):
         sid = ev.value("Exceptions", f"B{r}")
+        k = r - BW.EX_FIRST
+        assert sid == order[k]
         assert ev.value("Exceptions", f"E{r}") == pytest.approx(t.loc[sid, "score"], abs=1e-9)
         assert ev.value("Exceptions", f"F{r}") == t.loc[sid, "band"]
-        assert ev.value("Exceptions", f"M{r}") == pytest.approx(t.loc[sid, "forecast_14d"])
-        pr = ev.value("Exceptions", f"N{r}")
-        assert pr == pytest.approx(t.loc[sid, "priority"], rel=1e-9)
-        assert pr <= prev and ev.value("Exceptions", f"A{r}") == r - BW.EX_FIRST + 1
-        prev = pr
+        assert ev.value("Exceptions", f"M{r}") == pytest.approx(s14[sid] / 14 / base[sid] * 100, abs=1e-4)
+        assert ev.value("Exceptions", f"N{r}") == k + 1 and ev.value("Exceptions", f"A{r}") == k + 1
         assert bool(ev.value("Exceptions", f"L{r}")) == (len(t.loc[sid, "hard_flags"]) > 0)
 
 

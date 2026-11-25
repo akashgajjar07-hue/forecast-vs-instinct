@@ -35,8 +35,8 @@ Rebuild everything: `.venv/bin/python scripts/10_build_presentations.py` (about 
   - Trust Spearman, volatility-only ρ, default-weights ρ (−0.503, a hindsight diagnostic), accuracy-only ρ (−0.647) and score-vs-accuracy correlation (0.971)
   - the promo flag (67 windows, 8.71 % vs 13.02 %; 65 of 123 Review windows flagged only by it)
   - Beverages bias, calibration and holdout
-- `docs/data/{trust,overview,sop,scenario,meta}.json`: forward-origin band counts, Review volume share, the chain 14-day total vs the last 14 days, top exceptions, FVA (simulated), the citation and the placeholder event labels.
-- `outputs/eda/*.json`: weekday profile, volume share, transactions r, Produce recording gap and the holiday analogue range.
+- `docs/data/{trust,overview,sop,scenario,meta}.json`: forward-origin band counts, Review share of series, the chain 14-day total and the equal-weighted mean index vs the last 14 days, top exceptions, FVA (simulated), the citation and the placeholder event labels.
+- `outputs/eda/*.json`: equal-weighted weekday profile, family volatility (CV), transactions r, Produce recording gap and the holiday analogue range.
 - `config/*.json`: scope and split calendar. `agent_b.md`: the look-ahead test count (5), extracted with a regex.
 
 ## Caveats stated in the materials

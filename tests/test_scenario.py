@@ -36,8 +36,8 @@ def test_worked_example():
     assert r["recommended_plan"] == "high"
     assert r["expected_cost"] == pytest.approx({"low": 600, "base": 200, "high": 200})
     assert r["recommendation"] == (
-        "Plan to the High scenario (1,300 units): lowest expected cost (200) with weights low/base/high = 25/50/25 % "
-        "and an under:over cost ratio of 3:1. Available supply is 200 units short of that plan. "
+        "Plan to the High scenario (1,300 index-days): lowest expected cost (200) with weights low/base/high = 25/50/25 % "
+        "and an under:over cost ratio of 3:1. Available supply is 200 index-days short of that plan. "
         "Place the replenishment within 7 days (event start minus lead time).")
 
 

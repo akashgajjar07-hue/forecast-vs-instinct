@@ -4,7 +4,7 @@ const SLICES = [
   ["overall", "Overall"], ["family", "Family"], ["store", "Store"], ["horizon", "Horizon (days ahead)"],
   ["horizon_bucket", "Horizon bucket"], ["promo", "Promotion days"], ["holiday", "Holiday days"], ["week_bucket", "Week bucket (7-day sums)"],
 ];
-const METRICS = [["wape", "WAPE (%)"], ["bias", "Bias (%)"], ["mae", "MAE (units)"], ["rmse", "RMSE (units)"]];
+const METRICS = [["wape", "WAPE (%)"], ["bias", "Bias (%)"], ["mae", "MAE (index points)"], ["rmse", "RMSE (index points)"]];
 const SLICE_ORDER = { horizon_bucket: ["1-7", "8-14"], promo: ["promo", "no_promo"], holiday: ["holiday", "normal"], week_bucket: ["week1", "week2"] };
 const SLICE_LABEL = { promo: "promo days", no_promo: "no-promo days", holiday: "holidays", normal: "normal days", week1: "week 1", week2: "week 2", all: "All" };
 
@@ -38,7 +38,7 @@ export async function render(el, params) {
     ${hasB ? `<label class="field"><span>LightGBM promo info</span><select id="ar-variant">${options([["A", "A · known promo plan"], ["B", "B · no future promo info"]], state.variant)}</select></label>` : ""}
   </div>
   <section class="card"><div class="card-head"><h2 id="ar-title">Scores</h2><span class="muted small" id="ar-sub"></span></div><div id="ar-chart" class="chart tall"></div></section>
-  <section class="card"><h2 id="ar-table-title">Table</h2><div class="table-wrap scroll-y" id="ar-table" ${tableWrapAttrs("Arena metrics by model and slice, scrollable")}></div><p class="caption">★ marks the best model in each row. Baselines do not use promotion information, so they appear once.</p></section>
+  <section class="card"><h2 id="ar-table-title">Table</h2><div class="table-wrap scroll-y" id="ar-table" ${tableWrapAttrs("Arena metrics by model and slice, scrollable")}></div><p class="caption">★ marks the best model in each row. Baselines do not use promotion information, so they appear once. MAE and RMSE are in index points: each error is divided by its series' mean daily sales in the training period × 100 before averaging, so 1 point = 1 % of an average day of that series; WAPE and bias are ratios of sums.</p></section>
   <div class="grid g2">
     <section class="card"><h2>Champion per family</h2><div class="table-wrap" id="ar-champs" ${tableWrapAttrs("Champion per family table, scrollable")}></div><p class="caption">Lowest selection WAPE, tie-break lower |bias|. Holdout column shows how the frozen champion (LightGBM variant A, known promo plan) then did on the untouched test, whatever the promo-info toggle above.</p></section>
     <section class="card"><h2>Value of promotion information</h2><div id="ar-var" class="chart"></div><p class="caption" id="ar-var-cap"></p></section>

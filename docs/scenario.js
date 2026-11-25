@@ -119,17 +119,17 @@ export function runScenario(inp) {
   const gap = q - supply;
   const parts = [];
   parts.push(
-    `Plan to the ${LABEL[recommended]} scenario (${fmtInt(q)} units): lowest expected cost (${fmtInt(expected[recommended])}) ` +
+    `Plan to the ${LABEL[recommended]} scenario (${fmtInt(q)} index-days): lowest expected cost (${fmtInt(expected[recommended])}) ` +
       `with weights low/base/high = ${fmtInt(weights.low * 100)}/${fmtInt(weights.base * 100)}/${fmtInt(weights.high * 100)} % ` +
       `and an under:over cost ratio of ${fmtInt(cu)}:${fmtInt(co)}.`
   );
   if (gap > 0.5) {
-    parts.push(`Available supply is ${fmtInt(gap)} units short of that plan.`);
+    parts.push(`Available supply is ${fmtInt(gap)} index-days short of that plan.`);
     if (timing.status === "late") parts.push(`The standard order-by date passed ${fmtInt(-timing.order_in_days)} days ago: expedite, reallocate stock or agree a substitution.`);
     else if (timing.status === "now") parts.push(`Order now: the order-by date (event start minus ${fmtInt(Number(inp.lead_time_days) || 0)} days lead time) is ${fmtInt(timing.order_in_days)} days away.`);
     else parts.push(`Place the replenishment within ${fmtInt(timing.order_in_days)} days (event start minus lead time).`);
   } else if (gap < -0.5) {
-    parts.push(`Available supply exceeds that plan by ${fmtInt(-gap)} units: hold or reallocate the excess rather than reorder.`);
+    parts.push(`Available supply exceeds that plan by ${fmtInt(-gap)} index-days: hold or reallocate the excess rather than reorder.`);
   } else {
     parts.push("Available supply matches that plan: no replenishment decision is needed.");
   }

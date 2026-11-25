@@ -19,13 +19,14 @@ SQL files: 01 weekly family totals · 02 day-of-week profile · 03 volatility ·
 Every number uses history **2015-06-01 .. 2017-06-27** (the last calibration target date, read from
 `config/split_calendar.json`). The holdout (2017-06-28 .. 2017-08-15) is never read. The only exception is
 `11_produce_recording_gap.sql`, which reads raw 2013-2015 history *before* the window on purpose (data-quality check).
-Weekly totals contain complete Monday-Sunday weeks only, so the last published week is 2017-06-19 .. 06-25.
+Weekly values cover complete Monday-Sunday weeks only, so the last published week is 2017-06-19 .. 06-25. Since the
+compliance round 2 they are published as the equal-weighted family index (`weekly.family_index`), not unit totals.
 
 ## Definitions
 
 - **Closed day**: sales NULL (25 Dec, 1 Jan chain-wide); excluded from every mean, never treated as zero.
-- **dow_profile**: weekday mean of chain-level (12-store) daily family sales ÷ mean of the 7 weekday means (mean = 1);
-  national days off excluded.
+- **dow_profile**: per series, weekday mean index; per family, the plain mean over its 12 series, ÷ the mean of the
+  7 weekday values (mean = 1); national days off excluded (equal-weighted since the compliance round 2).
 - **Volatility**: `cv` = std/mean of daily sales on open days (includes the weekday swing); `cv_weekly` on complete
   weeks; `zero_share` = share of open days with sales = 0.
 - **Promo bins**: promoted-item count bins 0, 1-5, 6-15, 16-30, 31-60, 61+ (store-days). `mean_index` = sales ÷ the
@@ -50,12 +51,16 @@ Weekly totals contain complete Monday-Sunday weeks only, so the last published w
 
 ## Key findings (all from the queries; observed sales; associations, not causation)
 
-1. **Weekly rhythm**: Sunday is the peak for 6 of 8 families (index 1.27–1.39) and Thursday is the trough for all 8
-   (0.74–0.81); FROZEN FOODS peaks on Saturday (1.48).
-   PRODUCE peaks on **Wednesday (1.23)**; produce promotions cluster on Tue/Wed (mean 62 and 81 promoted items vs ~3 on
-   other days), so the Wednesday peak is *associated with* a mid-week produce promotion rhythm.
-2. **FROZEN FOODS is the planning problem**: 30.0 % of its in-window volume falls in December (other families
-   7.8–10.0 %); median weekly CV 0.55 vs 0.09–0.18 for the other families; 7 of the 8 most volatile series are FROZEN
+*(Compliance round 2: the numbers in this list are on the equal-weighted index scale, i.e. per series first, then the
+plain mean over a family's 12 series; no unit levels are published.)*
+
+1. **Weekly rhythm**: Sunday is the peak for 6 of 8 families (index 1.27–1.38) and Thursday is the trough for 7 of 8
+   (0.76–0.82; FROZEN FOODS is lowest on Monday); FROZEN FOODS peaks on Saturday (1.58).
+   PRODUCE peaks **mid-week, Tuesday above all (1.24; Wednesday 1.05)**; produce promotions cluster on Tue/Wed (promo
+   index 365 and 264 vs about 13 on other days, 100 = each series' own mean promoted-item count), so the mid-week peak
+   is *associated with* a mid-week produce promotion rhythm.
+2. **FROZEN FOODS is the planning problem**: a FROZEN FOODS series sells on average 30.0 % of its in-window sales in
+   December (other families 7.7–9.9 %); median weekly CV 0.55 vs 0.09–0.18 for the other families; 7 of the 8 most volatile series are FROZEN
    FOODS (store 38's biggest day is ~55× its mean day).
 3. **Promotions**: once store size and month are controlled for (`mean_index`), the promoted-item count is only weakly
    associated with sales for GROCERY I, BEVERAGES, CLEANING and DAIRY (bins within 0.97–1.04). The association is
@@ -67,9 +72,10 @@ Weekly totals contain complete Monday-Sunday weeks only, so the last published w
    +89 %) come from 1 May 2017, 2 Jan 2017 and 3 Nov 2015. The day *before* a holiday averages negative for 7 of 8 families (13 eves).
 5. **Raw holiday comparison** is dominated by the Christmas-run-up Additional days (FROZEN FOODS +227 %); excluding
    them, national days off are associated with −0.6 % (FROZEN FOODS) to +17.3 % (PERSONAL CARE).
-6. **Earthquake**: the other 10 stores show a temporary jump (quake month +20.6 % vs the month before; the month after
-   +3.6 %). The two Manabí stores show a lasting step (+65.5 % in the quake month, +75.7 % in the month after). The
-   biggest week of the whole window is 2016-04-18 (1.35× the median week), ahead of the Christmas weeks.
+6. **Earthquake** (equal-weighted index): the other 10 stores show a temporary jump (quake month +18.0 % vs the month
+   before; the month after +4.0 %). The two Manabí stores show a lasting step (+58.8 % in the quake month, +73.9 % in the
+   month after). On the equal-weighted index of all 96 series the biggest week of the window is 2016-12-19 (2.20× the
+   median week); the earthquake week ranks lower once every store counts the same.
 7. **Start of month**: days 1–5 sit 8–16 % above a normal same-weekday day; days 8–14 sit 2–7 % below. The 15th itself
    is not a standout for most families; the "day after payday" (16th / 1st) index is 1.03–1.14.
 8. **Transactions** track sales closely (pooled daily r = 0.897; per store 0.73–0.92) — EDA only, not a feature.

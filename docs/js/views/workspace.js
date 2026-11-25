@@ -1,4 +1,4 @@
-import { load, loadSeries, esc, fmtNum, fmtPct, fmtDate, addDays, plot, bandTrace, C, viewHead, options, setParams, famLabel, showEmpty, showLoading, pill, MODELS, MODEL_LABEL, MODEL_COLOR, MODEL_DASH, purgeCharts } from "../core.js";
+import { load, loadSeries, esc, fmtNum, fmtPct, fmtDate, addDays, plot, bandTrace, C, viewHead, options, setParams, famLabel, showEmpty, showLoading, pill, MODELS, MODEL_LABEL, MODEL_COLOR, MODEL_DASH, purgeCharts, INDEX_AXIS, INDEX_NOTE, PROMO_INDEX_NOTE } from "../core.js";
 
 const SCALES = [-100, -50, 0, 50, 100];
 const CONTEXT_DAYS = 56;
@@ -21,7 +21,7 @@ export async function render(el, params, ctx) {
   let ser = null;
 
   el.innerHTML = `
-  ${viewHead("04", "Forecast Workspace", "One series at a time: actuals, the champion forecast with its P10–P90 band, challengers on demand, and a promotion what-if from the precomputed grid.", "torus")}
+  ${viewHead("04", "Forecast Workspace", "One series at a time: actuals, the champion forecast with its P10–P90 band, challengers on demand, and a promotion what-if from the precomputed grid. All values are indexed (training-period mean = 100).", "torus")}
   <div class="controls" role="group" aria-label="Series selection">
     <label class="field"><span>Store</span><select id="ws-store"></select></label>
     <label class="field"><span>Family</span><select id="ws-family"></select></label>
@@ -44,6 +44,7 @@ export async function render(el, params, ctx) {
         <input type="range" id="ws-scale" min="0" max="4" step="1" list="ws-scale-ticks">
         <datalist id="ws-scale-ticks">${SCALES.map((s, i) => `<option value="${i}" label="${s > 0 ? "+" : ""}${s} %"></option>`).join("")}</datalist>
         <div class="small muted" style="display:flex;justify-content:space-between">${SCALES.map((s) => `<span>${s > 0 ? "+" : ""}${s} %</span>`).join("")}</div>
+        <p class="caption" style="margin-top:6px">Model association, not causal uplift — the data has no price or discount depth</p>
         <div id="ws-wi-text" style="margin-top:12px"></div>
       </div>
       <div id="ws-wi-chart" class="chart short"></div>
@@ -89,6 +90,12 @@ export async function render(el, params, ctx) {
   function drawModelChips() {
     const ch = champion();
     const box = sel("#ws-models");
+    if (state.origin !== "forward") {
+      // Holdout windows publish the champion only: per-series challenger lines next to the Arena's holdout accuracy
+      // slices would let unit volumes be reconstructed (Kaggle competition rules).
+      box.innerHTML = '<p class="small muted" style="margin:0">Challenger lines are shown for the forward window only. Compare all five models on the holdout in the Model Arena.</p>';
+      return;
+    }
     const challengers = MODELS.filter((m) => m !== ch);
     box.innerHTML = challengers.map((m) => `<button type="button" class="chip" data-model="${m}" aria-pressed="${state.models.has(m)}"><span class="swatch" style="background:${MODEL_COLOR[m]}"></span> ${MODEL_LABEL[m]}</button>`).join("");
     box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
@@ -110,34 +117,34 @@ export async function render(el, params, ctx) {
     const startIdx = Math.max(0, (new Date(origin) - new Date(ser.history.start)) / 864e5 - CONTEXT_DAYS + 1);
     const endIdx = (new Date(origin) - new Date(ser.history.start)) / 864e5;
     const hx = [], hy = [];
-    for (let i = startIdx; i <= endIdx && i < ser.history.sales.length; i++) { hx.push(addDays(ser.history.start, i)); hy.push(ser.history.sales[i]); }
+    for (let i = startIdx; i <= endIdx && i < ser.history.index.length; i++) { hx.push(addDays(ser.history.start, i)); hy.push(ser.history.index[i]); }
     const x = win.rows.map((r) => r.date);
     const traces = [
       { x: hx, y: hy, type: "scatter", mode: "lines", name: "Actual", line: { color: C.actual, width: 1.6 } },
-      ...bandTrace(x, win.rows.map((r) => r.p10), win.rows.map((r) => r.p90)),
+      ...bandTrace(x, win.rows.map((r) => r.p10_index), win.rows.map((r) => r.p90_index)),
     ];
-    if (!fwd) traces.push({ x, y: win.rows.map((r) => r.actual), type: "scatter", mode: "lines+markers", name: "Actual (window)", line: { color: C.actual, width: 1.6 }, marker: { size: 4, color: C.actual }, showlegend: false });
+    if (!fwd) traces.push({ x, y: win.rows.map((r) => r.actual_index), type: "scatter", mode: "lines+markers", name: "Actual (window)", line: { color: C.actual, width: 1.6 }, marker: { size: 4, color: C.actual }, showlegend: false });
     const challengers = MODELS.filter((m) => m !== ch);
     challengers.forEach((m) => {
-      if (!state.models.has(m)) return;
+      if (!fwd || !state.models.has(m)) return;
       // Same colour and dash per model as in the Model Arena.
-      traces.push({ x, y: win.rows.map((r) => r.models?.[m] ?? null), type: "scatter", mode: "lines", name: MODEL_LABEL[m], line: { color: MODEL_COLOR[m] || C.periwinkle, width: 1.6, dash: MODEL_DASH[m] || "dash" } });
+      traces.push({ x, y: win.rows.map((r) => r.models_index?.[m] ?? null), type: "scatter", mode: "lines", name: MODEL_LABEL[m], line: { color: MODEL_COLOR[m] || C.periwinkle, width: 1.6, dash: MODEL_DASH[m] || "dash" } });
     });
-    traces.push({ x, y: win.rows.map((r) => (fwd ? r.forecast : r.models?.[ch] ?? null)), type: "scatter", mode: "lines", name: `Champion · ${MODEL_LABEL[ch] || ch}`, line: { color: MODEL_COLOR[ch] || C.champion, width: 2.6 } });
+    traces.push({ x, y: win.rows.map((r) => r.forecast_index ?? null), type: "scatter", mode: "lines", name: `Champion · ${MODEL_LABEL[ch] || ch}`, line: { color: MODEL_COLOR[ch] || C.champion, width: 2.6 } });
     if (fwd && state.scale !== 0) {
       const w = ser.whatif.rows.find((r) => r.scale_pct === state.scale);
-      if (w) traces.push({ x, y: w.daily, type: "scatter", mode: "lines", name: `What-if promo ${state.scale > 0 ? "+" : ""}${state.scale} %`, line: { color: C.Monitor, width: 2, dash: "dot" } });
+      if (w) traces.push({ x, y: w.daily_index, type: "scatter", mode: "lines", name: `What-if promo ${state.scale > 0 ? "+" : ""}${state.scale} %`, line: { color: C.Monitor, width: 2, dash: "dot" } });
     }
     plot(box, traces, {
-      hovermode: "x unified", yaxis: { title: { text: "units / day" }, rangemode: "tozero" },
+      hovermode: "x unified", yaxis: { title: { text: INDEX_AXIS }, rangemode: "tozero" },
       shapes: [{ type: "line", x0: origin, x1: origin, yref: "paper", y0: 0, y1: 1, line: { color: C.muted, dash: "dot", width: 1 } }],
       annotations: [{ x: origin, yref: "paper", y: 1, text: "origin", showarrow: false, font: { color: C.muted, size: 10 }, xanchor: "right", yanchor: "top" }],
-    }, `Store ${ser.store_nbr} ${famLabel(ser.family)}: actual sales and ${fwd ? "forward" : "holdout"} champion forecast from origin ${origin} with P10 to P90 band.`);
+    }, `Store ${ser.store_nbr} ${famLabel(ser.family)}: indexed actual sales and ${fwd ? "forward" : "holdout"} champion forecast from origin ${origin} with P10 to P90 band (training-period mean = 100).`);
     sel("#ws-title").textContent = `Store ${ser.store_nbr} · ${famLabel(ser.family)}`;
     sel("#ws-sub").textContent = fwd ? "forward forecast" : `holdout origin ${fmtDate(origin)}`;
     sel("#ws-cap").textContent = fwd
-      ? `Forward window ${fmtDate(x[0])} – ${fmtDate(x[x.length - 1])}: no actuals exist yet. Planned promotions come from the published promo calendar.`
-      : "Holdout window: the model saw data only up to the origin; actuals in the window were never used for training or selection.";
+      ? `Forward window ${fmtDate(x[0])} – ${fmtDate(x[x.length - 1])}: no actuals exist yet. Planned promotions come from the published promo calendar. ${INDEX_NOTE}`
+      : `Holdout window: the model saw data only up to the origin; actuals in the window were never used for training or selection. ${INDEX_NOTE}`;
   }
 
   function drawSide() {
@@ -149,16 +156,18 @@ export async function render(el, params, ctx) {
     const t = ser.trust;
     let windowStats = "";
     if (fwd) {
-      const tot = win.rows.reduce((a, r) => a + r.forecast, 0);
-      const promo = win.rows.reduce((a, r) => a + (r.onpromotion || 0), 0);
-      windowStats = `<div class="stat-row"><div><b>${fmtNum(tot)}</b>14-day champion total</div><div><b>${fmtNum(promo)}</b>planned promo item-days</div></div>`;
+      const mean = win.rows.reduce((a, r) => a + r.forecast_index, 0) / win.rows.length;
+      const pr = win.rows.filter((r) => r.promo_index !== null && r.promo_index !== undefined);
+      const promo = pr.length ? pr.reduce((a, r) => a + r.promo_index, 0) / pr.length : null;
+      windowStats = `<div class="stat-row"><div><b>${fmtNum(mean, 1)}</b>14-day champion forecast, index (mean day)</div><div><b>${fmtNum(promo, 0)}</b>planned promotions, promo index (14-day mean)</div></div>`;
     } else {
-      const ok = win.rows.filter((r) => r.actual !== null);
-      const f = (r) => r.models?.[ch] ?? 0;
-      const sa = ok.reduce((a, r) => a + r.actual, 0);
-      const wape = sa > 0 ? (100 * ok.reduce((a, r) => a + Math.abs(r.actual - f(r)), 0)) / sa : null;
-      const bias = sa > 0 ? (100 * ok.reduce((a, r) => a + (f(r) - r.actual), 0)) / sa : null;
-      const cov = ok.length ? (100 * ok.filter((r) => r.actual >= r.p10 && r.actual <= r.p90).length) / ok.length : null;
+      // WAPE, bias and coverage are scale-free, so they are the same on the index scale as in units.
+      const ok = win.rows.filter((r) => r.actual_index !== null);
+      const f = (r) => r.forecast_index ?? 0;
+      const sa = ok.reduce((a, r) => a + r.actual_index, 0);
+      const wape = sa > 0 ? (100 * ok.reduce((a, r) => a + Math.abs(r.actual_index - f(r)), 0)) / sa : null;
+      const bias = sa > 0 ? (100 * ok.reduce((a, r) => a + (f(r) - r.actual_index), 0)) / sa : null;
+      const cov = ok.length ? (100 * ok.filter((r) => r.actual_index >= r.p10_index && r.actual_index <= r.p90_index).length) / ok.length : null;
       windowStats = `<div class="stat-row"><div><b>${fmtPct(wape)}</b>window WAPE</div><div><b>${fmtPct(bias, 1, true)}</b>window bias</div><div><b>${fmtPct(cov, 0)}</b>days inside band</div></div>
         <p class="small muted">Computed in the browser from this window's ${ok.length} open days.</p>`;
     }
@@ -192,24 +201,24 @@ export async function render(el, params, ctx) {
       text.innerHTML = '<div class="empty">No what-if row for this change.</div>';
     } else {
       const extrap = row.extrapolation
-        ? `<p class="note bad small" role="alert"><b>Extrapolation warning.</b> ${fmtNum(row.promo_total)} planned promo item-days (${fmtNum(row.promo_total / 14, 1)} promoted items per day on average) is beyond this series' historical range (95th percentile of 14-day means ${fmtNum(wi.hist_p95_promo, 1)} per day, highest single day ${fmtNum(wi.hist_max_promo)}). The model has not seen promotion this intense; treat the number as indicative only.</p>`
+        ? `<p class="note bad small" role="alert"><b>Extrapolation warning.</b> A planned promotion intensity of promo index ${fmtNum(row.promo_index, 0)} (14-day mean) is beyond this series' historical range (95th percentile of 14-day means: promo index ${fmtNum(wi.hist_p95_promo_index, 0)}; highest single day: ${fmtNum(wi.hist_max_promo_index, 0)}). The model has not seen promotion this intense; treat the number as indicative only.</p>`
         : row.below_history
           ? `<p class="note warn small">This plan has fewer promotions than any 14-day window in this series' history, so the model is also outside the range it learned from; treat the number as indicative only.</p>`
           : "";
       text.innerHTML = `
-        <p>Planned promotions: <b>${fmtNum(row.promo_total)}</b> item-days${base ? ` (baseline plan ${fmtNum(base.promo_total)})` : ""}.</p>
-        <p class="verdict">Model-predicted change associated with this promotion plan: <b style="color:${C.champion}">${fmtPct(row.change_pct, 1, true)}</b> (${fmtNum(row.forecast_total)} units over 14 days).</p>
-        <p class="small muted">This is what the model predicts when only the promotion input changes. It is an association learned from history, not a measured causal uplift.${state.origin !== "forward" ? " The grid applies to the forward window; switch the origin to Forward to see the daily line." : ""}</p>
+        <p>Planned promotions: promo index <b>${fmtNum(row.promo_index, 0)}</b> (14-day mean)${base ? ` (baseline plan ${fmtNum(base.promo_index, 0)})` : ""}.</p>
+        <p class="verdict">Model-predicted change associated with this promotion plan: <b style="color:${C.champion}">${fmtPct(row.change_pct, 1, true)}</b> (14-day forecast index ${fmtNum(row.forecast_index, 1)}).</p>
+        <p class="small muted">This is what the model predicts when only the promotion input changes. It is an association learned from history, not a measured causal uplift. ${esc(PROMO_INDEX_NOTE)}${state.origin !== "forward" ? " The grid applies to the forward window; switch the origin to Forward to see the daily line." : ""}</p>
         ${extrap}`;
     }
     const xs = wi.rows.map((r) => `${r.scale_pct > 0 ? "+" : ""}${r.scale_pct} %`);
     plot(sel("#ws-wi-chart"), [{
-      x: xs, y: wi.rows.map((r) => r.forecast_total), type: "bar", name: "14-day forecast",
+      x: xs, y: wi.rows.map((r) => r.forecast_index), type: "bar", name: "14-day forecast index",
       marker: { color: wi.rows.map((r) => (r.scale_pct === state.scale ? C.champion : C.periwinkle)), pattern: { shape: wi.rows.map((r) => (r.extrapolation ? "x" : "")), fgcolor: C.panelDeep, size: 7 } },
       customdata: wi.rows.map((r) => [r.change_pct, r.extrapolation ? "extrapolation" : "within range"]),
-      hovertemplate: "promo %{x}: %{y:,.0f} units (%{customdata[0]:+.1f} %, %{customdata[1]})<extra></extra>",
-    }], { xaxis: { title: { text: "change to planned promotions" }, type: "category" }, yaxis: { title: { text: "14-day units" } }, showlegend: false },
-    "Precomputed promotion what-if grid: 14-day forecast total for each change to planned promotions. Hatched bars are extrapolations.");
+      hovertemplate: "promo %{x}: index %{y:,.1f} (%{customdata[0]:+.1f} %, %{customdata[1]})<extra></extra>",
+    }], { xaxis: { title: { text: "change to planned promotions" }, type: "category" }, yaxis: { title: { text: INDEX_AXIS } }, showlegend: false },
+    "Precomputed promotion what-if grid: 14-day forecast index (mean day, training-period mean = 100) for each change to planned promotions. Hatched bars are extrapolations.");
   }
 
   function drawAll() { drawModelChips(); drawMain(); drawSide(); drawWhatIf(); }

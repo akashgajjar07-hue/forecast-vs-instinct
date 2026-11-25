@@ -55,3 +55,16 @@ Beverages (−3.4 % calibration, −2.4 % holdout). FVA −0.45 pp (12.57 % → 
 - Overview: the outlook card stretches to the height of the Findings card, which leaves empty space at 1440 px (cosmetic).
 - `node --test tests/js/` (directory form, used in CI) fails on local node 22.23 because it is not treated as a directory. Passing the file works. CI uses node 22 from setup-node, so check it there.
 - `docs/data/_fixtures/` still exists (agent D: delete before deploy). It is excluded from the size check.
+
+## Compliance update (index scale, Kaggle rule 7B)
+
+The field names above for trust / sop / overview outlook / series files are superseded. Per-series values are now
+published as an index (value ÷ series base × 100, base = mean open-day sales 2015-06-01..2017-02-06, `src/indexing.py`);
+`trust.latest` carries `forecast_14d_index / p10_14d_index / p90_14d_index / priority_rank`; `sop.rows` carries
+`stat_index / p10_index / p90_index`; the chain outlook is indexed to the chain base; series files use `history.index`,
+`history.weekly_index`, `*_index` fields and a promo index. The per-series forward window band moved from
+`outputs/window_band_results.json` to the git-ignored `outputs/holdout/window_band_forward.parquet`. See
+`docs/data_contract.md` and `docs/agent_notes/compliance.md`.
+
+Compliance round 2 (owner rule: units only for portfolio totals): see `docs/agent_notes/compliance.md` for the
+equal-weighted family / chain indexes, index-scale MAE / RMSE / widths and index-day scenario baselines.

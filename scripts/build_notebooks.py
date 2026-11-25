@@ -51,6 +51,7 @@ from src import config as C, metrics as M
 from src.backtest import evaluable, masked_view
 from src.runner import load_backtests
 from src.selection import selection_table, pick_champions, champion_rows
+from src import indexing as IX  # per-series values are shown as an index (Kaggle rule 7B: no raw data)
 
 pio.renderers.default = "plotly_mimetype+notebook_connected"
 pd.set_option("display.precision", 3)
@@ -197,18 +198,26 @@ controls stop it:
 copy where every **sale after T is blanked (NaN)**. In **promo variant B** the promoted-item count after T is blanked
 too; in **variant A** it is kept, as a planner with an agreed promo calendar would know it. The demo below uses the
 first selection origin.
+
+Raw competition data is not redistributed, so the demo shows **indexed** values: sales as an index (÷ the series'
+mean daily sales on open days 2015-06-01..2017-02-06 × 100, so 100 = an average training-period day) and promotions
+as a promo index (÷ the series' mean promoted-item count from 2015-06-01 up to T × 100). Masking is applied to the
+raw panel first and the result is indexed afterwards, so a blanked value stays NaN.
 '''),
 code(r'''
 T0 = pd.Timestamp(cal["stages"]["selection"][0])
 sid = "12|BEVERAGES"
 one = panel[panel.series_id == sid]
+sb, pb = IX.series_base(panel)[sid], IX.promo_base(panel, T0)[sid]   # private bases: used, never printed
 around = lambda d: d[(d.date > T0 - pd.Timedelta(days=3)) & (d.date <= T0 + pd.Timedelta(days=3))].set_index("date")
+si = lambda d: IX.to_index(around(d)["sales"], sb).round(1)
+pi = lambda d: IX.to_index(around(d)["onpromotion"], pb).round(1)
 demo = pd.DataFrame({
-    "raw sales": around(one)["sales"], "raw promo": around(one)["onpromotion"],
-    "view A sales": around(masked_view(one, T0, "A"))["sales"], "view A promo": around(masked_view(one, T0, "A"))["onpromotion"],
-    "view B sales": around(masked_view(one, T0, "B"))["sales"], "view B promo": around(masked_view(one, T0, "B"))["onpromotion"]})
+    "sales index (panel)": si(one), "promo index (panel)": pi(one),
+    "view A sales": si(masked_view(one, T0, "A")), "view A promo": pi(masked_view(one, T0, "A")),
+    "view B sales": si(masked_view(one, T0, "B")), "view B promo": pi(masked_view(one, T0, "B"))})
 demo.index = [f"{d:%Y-%m-%d}" + ("  <- origin T" if d == T0 else "") for d in demo.index]
-print(f"Series {sid}, origin T = {T0:%Y-%m-%d}")
+print(f"Series {sid}, origin T = {T0:%Y-%m-%d}; index values (100 = the series' average training-period day)")
 demo
 '''),
 md(r'''
@@ -355,10 +364,13 @@ print("max |recomputed - saved| WAPE:", float((lb.wape - saved.loc[lb.index, "wa
 best_base = lb.drop(["lightgbm A", "lightgbm B"]).wape.idxmin()
 print(f"LightGBM A vs best simple model ({best_base}): {lb.loc[best_base,'wape'] - lb.loc['lightgbm A','wape']:.2f} pp lower WAPE, "
       f"{100 * (1 - lb.loc['lightgbm A','wape'] / lb.loc[best_base,'wape']):.0f}% less mis-forecast volume")
-pre = panel[(panel.date <= cal["target_windows"]["calibration"][1]) & (panel.closed == 0)].groupby("date").sales.sum()
-tue = pre[pre.index.dayofweek == 1].mean() / pre.mean()
-print(f"Why naive under-forecasts: origins are Tuesdays, and a Tuesday sells {tue:.3f}x an average day (history up to the "
-      f"last calibration target), so repeating Tuesday for 14 days misses the weekend peak.")
+# equal-weighted over the 96 series (each series on its own index scale), so no series' volume weighs more
+pre = panel[(panel.date <= cal["target_windows"]["calibration"][1]) & (panel.closed == 0) & panel.sales.notna()].copy()
+pre["idx"] = IX.to_index(pre.sales, pre.series_id.map(IX.series_base(panel)))
+sw = pre.groupby(["series_id", pre.date.dt.dayofweek == 1]).idx.mean().unstack()
+tue = (sw[True] / pre.groupby("series_id").idx.mean()).mean()
+print(f"Why naive under-forecasts: origins are Tuesdays, and a Tuesday sells {tue:.3f}x an average day (mean over the 96 "
+      f"series, history up to the last calibration target), so repeating Tuesday for 14 days misses the weekend peak.")
 lb.round(2)
 '''),
 code(r'''
@@ -769,15 +781,19 @@ from only 6 calendar days, so individual points are noisy.
 
 ## 3. How wide are the bands?
 
-Width = P90 − P10 in units, and relative to the point forecast (width ÷ forecast) so families can be compared.
+Width = P90 − P10 on the index scale (÷ the series' training-period mean daily sales × 100, so the width is in
+"index points" of an average day), and relative to the point forecast (Σ width ÷ Σ forecast) so families can be
+compared. Per-family unit levels are not shown (Kaggle rules); only the all-96-series portfolio width is in units.
 '''),
 code(r'''
 ho["width"] = ho.p90 - ho.p10
+_base = ho.series_id.map(IX.series_base(panel))
+ho["width_index"], ho["forecast_index"] = IX.to_index(ho.width, _base), IX.to_index(ho.forecast, _base)
 wd = ho.groupby("family").apply(lambda g: pd.Series({
-    "mean width (units)": g.width.mean(), "mean forecast (units)": g.forecast.mean(),
+    "mean width (index points)": g.width_index.mean(), "mean forecast (index)": g.forecast_index.mean(),
     "width / forecast %": 100 * g.width.sum() / g.forecast.sum(), "coverage %": 100 * g.inside.mean()})).loc[C.FAMILIES]
-print(f"Champion system, holdout: mean width {M.mean_width(ho.p10, ho.p90):.1f} units "
-      f"(holdout_results.json: {res['champion_system']['mean_width']:.1f}); "
+print(f"Champion system (all 96 series), holdout: mean width {M.mean_width(ho.p10, ho.p90):.1f} units "
+      f"(holdout_results.json: {res['champion_system']['mean_width']:.1f}), {ho.width_index.mean():.1f} index points; "
       f"width / forecast {100 * ho.width.sum() / ho.forecast.sum():.1f}%")
 display(wd.round(1))
 tot = pd.read_parquet(OUT / "holdout" / "chain_total.parquet")
@@ -872,7 +888,7 @@ code(r'''
 jv = hs.merge(realised, on=["series_id", "origin"])
 fig = px.scatter(jv, x="score", y="wape", color="band", color_discrete_map=BAND_COLOR, opacity=0.7,
                  category_orders={"band": ["Accept", "Monitor", "Review"]},
-                 hover_data={"series_id": True, "origin": "|%Y-%m-%d", "score": ":.1f", "wape": ":.1f"},
+                 hover_data={"score": ":.1f", "wape": ":.1f"},  # no series/origin ids: band membership per window stays private
                  title="Holdout: Trust score at the origin vs realised 14-day WAPE (each dot = one series-window)")
 fig.update_traces(marker_size=7)
 for x in (60, 80):
@@ -981,6 +997,11 @@ md(r'''
 
 scale_T = mean of the last 28 days of sales up to T. For days 1-7 the family's q_lo / q_hi for bucket "1-7" apply, for
 days 8-14 those of "8-14".
+
+The computation runs on the raw panel, but everything *displayed* for this one series is an **index** (raw
+competition data is not redistributed): sales-scale values ÷ the series' mean daily sales on open days
+2015-06-01..2017-02-06 × 100 (100 = an average training-period day), promoted-item counts as a promo index (÷ the
+series' mean count from 2015-06-01 up to T × 100). Ratios (WAPE, bias, coverage, CV) are scale-free and unchanged.
 '''),
 code(r'''
 hist28 = panel[(panel.series_id == SID) & (panel.date > T - pd.Timedelta(days=28)) & (panel.date <= T)]
@@ -992,22 +1013,28 @@ w["p10 (by hand)"] = np.minimum(np.maximum(0, w.forecast + w.bucket.map(qf.q_lo)
 w["p90 (by hand)"] = np.maximum(np.maximum(0, w.forecast + w.bucket.map(qf.q_hi) * scale_T), w.forecast)
 assert np.allclose(w["p10 (by hand)"], w.p10) and np.allclose(w["p90 (by hand)"], w.p90)
 w["inside"] = (w.actual >= w.p10) & (w.actual <= w.p90)
-print(f"scale_T = {scale_T:.2f} | {FAMILY} quantiles: 1-7 [{qf.loc['1-7','q_lo']:.3f}, {qf.loc['1-7','q_hi']:.3f}], "
+SB, PB = IX.series_base(panel)[SID], IX.promo_base(panel, T)[SID]   # private bases: used, never printed
+wi = w.assign(**{c: IX.to_index(w[c], SB) for c in ["forecast", "p10", "p90", "actual"]},
+              onpromotion=IX.to_index(w.onpromotion, PB))
+wi = wi.rename(columns={"onpromotion": "promo index", "forecast": "forecast index", "p10": "P10 index",
+                        "p90": "P90 index", "actual": "actual index"})
+print(f"scale_T = index {IX.to_index(scale_T, SB):.1f} | {FAMILY} quantiles: 1-7 [{qf.loc['1-7','q_lo']:.3f}, {qf.loc['1-7','q_hi']:.3f}], "
       f"8-14 [{qf.loc['8-14','q_lo']:.3f}, {qf.loc['8-14','q_hi']:.3f}]  (hand-computed bands match the saved ones)")
-w[["horizon", "target_date", "onpromotion", "forecast", "p10", "p90", "actual", "inside"]].assign(target_date=lambda d: d.target_date.dt.strftime("%a %d %b")).round(1).set_index("horizon").T
+wi[["horizon", "target_date", "promo index", "forecast index", "P10 index", "P90 index", "actual index", "inside"]].assign(target_date=lambda d: d.target_date.dt.strftime("%a %d %b")).round(1).set_index("horizon").T
 '''),
 code(r'''
 past = panel[(panel.series_id == SID) & (panel.date > T - pd.Timedelta(days=42)) & (panel.date <= T)]
 fig = go.Figure()
-fig.add_scatter(x=list(w.target_date) + list(w.target_date[::-1]), y=list(w.p90) + list(w.p10[::-1]), fill="toself",
+X = lambda v: (IX.to_index(np.asarray(v, float), SB)).round(1)   # chart in index units, never raw units
+fig.add_scatter(x=list(w.target_date) + list(w.target_date[::-1]), y=list(X(w.p90)) + list(X(w.p10)[::-1]), fill="toself",
                 fillcolor="rgba(235,104,52,0.18)", line=dict(width=0), name="P10-P90 band", hoverinfo="skip")
-fig.add_scatter(x=past.date, y=past.sales, mode="lines", name="sales (known at T)", line=dict(color="#52514e", width=2))
-fig.add_scatter(x=w.target_date, y=w.forecast, mode="lines+markers", name="champion forecast", line=dict(color="#eb6834", width=2), marker=dict(size=7))
-fig.add_scatter(x=w.target_date, y=w.actual, mode="markers", name="actual (revealed later)", marker=dict(color="#2a78d6", size=9, symbol="diamond"))
+fig.add_scatter(x=past.date, y=X(past.sales), mode="lines", name="sales index (known at T)", line=dict(color="#52514e", width=2))
+fig.add_scatter(x=w.target_date, y=X(w.forecast), mode="lines+markers", name="champion forecast", line=dict(color="#eb6834", width=2), marker=dict(size=7))
+fig.add_scatter(x=w.target_date, y=X(w.actual), mode="markers", name="actual (revealed later)", marker=dict(color="#2a78d6", size=9, symbol="diamond"))
 fig.add_vline(x=T.timestamp() * 1000, line_dash="dash", line_color="#52514e")
 fig.add_annotation(x=T, y=1.02, yref="paper", text="origin T", showarrow=False, yanchor="bottom")
 fig.update_layout(**{**LAYOUT, "height": 400}, title=f"{SID}: 6 weeks of history, then the 14-day forecast with its 80% band",
-                  yaxis_title="daily sales (units)", xaxis_title=None)
+                  yaxis_title="Index (training-period mean = 100)", xaxis_title=None)
 fig.show()
 '''),
 md(r'''
@@ -1043,17 +1070,20 @@ promo_p95 = roll[roll.index <= T].quantile(K["promo_quantile"])
 promo_plan = w.onpromotion.mean()
 
 print(f"History windows used (origins with o + 14 <= T): {[f'{o:%m-%d}' for o in done]}")
-print("Five models' 14-day forecast totals at T:", {m: round(v) for m, v in tots.items()})
+tots_i = IX.to_index(tots / K["horizon"], SB)   # 14-day total as index: mean daily value / base x 100
+print("Five models' 14-day forecasts at T (index, mean daily / series base x 100):", {m: round(v, 1) for m, v in tots_i.items()})
 steps = pd.DataFrame([
     ["accuracy", f"WAPE_hist = {wape_hist:.2f}%", f"100 × (1 − min({wape_hist:.2f}, 50)/50)", acc, ex.accuracy],
     ["interval", f"cov_hist = {cov_hist:.1f}% of {len(hiv)} days", f"100 × (1 − min(|{cov_hist:.1f} − 80|, 40)/40)", inter, ex.interval],
     ["stability", f"CV_56 = {cv56:.3f}, zero share = {zero56:.2f}", f"100 × (1 − min({cv56:.3f}, 1)) × (1 − {zero56:.2f})", stab, ex.stability],
-    ["agreement", f"5 models' 14-day totals, mean {tots.mean():,.0f}", f"cv_models = {mcv:.3f} → 100 × (1 − min({mcv:.3f}/0.5, 1))", agr, ex.agreement],
+    ["agreement", f"5 models' 14-day forecasts, mean index {tots_i.mean():.1f}", f"cv_models = {mcv:.3f} → 100 × (1 − min({mcv:.3f}/0.5, 1))", agr, ex.agreement],
     ["completeness", f"{len(ok)} of 56 days open with a sale", f"100 × {len(ok)}/56", comp_, ex.completeness],
 ], columns=["component", "input", "formula", "by hand", "saved"]).set_index("component")
 assert np.allclose(steps["by hand"].astype(float), steps["saved"].astype(float))
-print(f"Promo flag check: planned mean promo {promo_plan:.1f} vs series p95 of 14-day mean {promo_p95:.1f} -> "
-      f"{'FLAG' if promo_plan > promo_p95 else 'no flag'} (saved: plan {ex.promo_plan_mean:.1f}, p95 {ex.promo_p95:.1f})")
+assert np.isclose(promo_plan, ex.promo_plan_mean) and np.isclose(promo_p95, ex.promo_p95)
+P = lambda v: IX.to_index(v, PB)
+print(f"Promo flag check (promo index): planned mean {P(promo_plan):.1f} vs series p95 of 14-day mean {P(promo_p95):.1f} -> "
+      f"{'FLAG' if promo_plan > promo_p95 else 'no flag'} (matches the saved plan and p95)")
 steps.round(2)
 '''),
 md(r'''

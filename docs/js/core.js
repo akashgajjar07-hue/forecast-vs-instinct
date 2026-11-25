@@ -258,6 +258,11 @@ export function viewHead(num, title, lede, kind = "torus", extra = "") {
     <div class="text"><h1 tabindex="-1">${esc(title)}</h1><p>${lede}</p>${extra}</div></header>`;
 }
 
+// ---------- index scale (Kaggle rules: per-series units are never published) ----------
+export const INDEX_AXIS = "Index (training-period mean = 100)";
+export const INDEX_NOTE = "Index: value ÷ the series' mean daily sales in the training period (1 Jun 2015 – 6 Feb 2017) × 100, so 100 = an average training-period day. Units are not published.";
+export const PROMO_INDEX_NOTE = "Promo index: planned promoted-item count ÷ the series' mean promoted-item count up to the forecast origin × 100.";
+
 // ---------- 14-day total interval (intervals.json → window_band, optional) ----------
 export const WINDOW_BAND_LABEL = "14-day total P10–P90 (calibrated on 14-day totals)";
 const asPct = (x) => (typeof x === "number" && Number.isFinite(x) ? (Math.abs(x) <= 1 ? x * 100 : x) : null);

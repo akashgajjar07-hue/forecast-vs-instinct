@@ -173,7 +173,7 @@ class Checker:
             path = dl.value.path()
             text = Path(path).read_text() if path else ""
             lines = text.strip().splitlines()
-            if not lines or lines[0] != "date,location,product_family,statistical_qty,override_qty,final_qty,reason_code,user":
+            if not lines or lines[0] != "date,location,product_family,statistical_index,override_index,final_index,reason_code,user":
                 self.failures.append(f"[{where}] CSV header wrong: {lines[:1]}")
             elif not any(",999," in ln for ln in lines[1:]):
                 self.failures.append(f"[{where}] CSV export missing the override")

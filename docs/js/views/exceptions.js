@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty, pill, viewHref, slugOf, BANDS, purgeCharts, WINDOW_BAND_LABEL, fillWindowBandCaption, tableWrapAttrs } from "../core.js";
+import { load, esc, fmtNum, fmtPct, plot, C, viewHead, options, setParams, famLabel, showEmpty, pill, viewHref, slugOf, BANDS, purgeCharts, WINDOW_BAND_LABEL, fillWindowBandCaption, tableWrapAttrs, INDEX_NOTE } from "../core.js";
 
 const COMP = ["accuracy", "interval", "stability", "agreement", "completeness"];
 const COMP_LABEL = { accuracy: "Accuracy", interval: "Interval", stability: "Stability", agreement: "Agreement", completeness: "Completeness" };
@@ -6,7 +6,7 @@ const COMP_LABEL = { accuracy: "Accuracy", interval: "Interval", stability: "Sta
 export async function render(el, params) {
   const [trust, index, meta] = await Promise.all([load("trust.json"), load("series_index.json"), load("meta.json")]);
   const slugs = new Set(index.map((s) => s.slug));
-  const all = [...trust.latest].sort((a, b) => b.priority - a.priority);
+  const all = [...trust.latest].sort((a, b) => a.priority_rank - b.priority_rank);
   const fams = meta.scope.families.filter((f) => all.some((r) => r.family === f));
   const state = {
     band: BANDS.includes(params.band) ? params.band : "ALL",
@@ -17,7 +17,7 @@ export async function render(el, params) {
   const counts = Object.fromEntries(BANDS.map((b) => [b, all.filter((r) => r.band === b).length]));
 
   el.innerHTML = `
-  ${viewHead("05", "Exception Centre", "A trust inbox: which forecasts to look at first. Priority = (100 − trust score) × share of 14-day volume, so big, shaky series rise to the top.", "prism")}
+  ${viewHead("05", "Exception Centre", "A trust inbox: which forecasts to look at first. Priority = (100 − trust score) × share of 14-day volume, so big, shaky series rise to the top (only the rank is published).", "prism")}
   <div class="controls" role="group" aria-label="Inbox filters">
     <div class="field"><span id="ex-band-lbl">Trust band</span><div class="chips" role="group" aria-labelledby="ex-band-lbl" id="ex-bands">
       ${[["ALL", `All (${all.length})`], ...BANDS.map((b) => [b, `${b} (${counts[b]})`])].map(([b, l]) => `<button type="button" class="chip" data-band="${b}" aria-pressed="${state.band === b}">${l}</button>`).join("")}
@@ -72,9 +72,9 @@ export async function render(el, params) {
     const box = sel("#ex-table");
     if (!rows.length) { box.innerHTML = '<div class="empty" role="status">No series match these filters.</div>'; return; }
     if (!rows.some((r) => r.series_id === state.series)) state.series = rows[0].series_id;
-    box.innerHTML = `<table><thead><tr><th class="n">#</th><th>Series</th><th class="n">Score</th><th>Band</th><th>Hard flags</th><th class="n">14-day forecast</th><th class="n">Priority</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
+    box.innerHTML = `<table><thead><tr><th class="n">#</th><th>Series</th><th class="n">Score</th><th>Band</th><th>Hard flags</th><th class="n">14-day forecast index</th><th class="n">Priority rank</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>
       ${rows.map((r, i) => `<tr class="${r.series_id === state.series ? "is-selected" : ""}"><td class="n">${i + 1}</td><td>Store ${r.store_nbr} · ${esc(famLabel(r.family))}</td><td class="n">${fmtNum(r.score, 0)}</td><td>${pill(r.band)}</td>
-        <td>${r.hard_flags.length ? `<span class="flag">${r.hard_flags.length}</span>` : '<span class="muted">–</span>'}</td><td class="n">${fmtNum(r.forecast_14d)}</td><td class="n">${fmtNum(r.priority, 2)}</td>
+        <td>${r.hard_flags.length ? `<span class="flag">${r.hard_flags.length}</span>` : '<span class="muted">–</span>'}</td><td class="n">${fmtNum(r.forecast_14d_index, 1)}</td><td class="n">${fmtNum(r.priority_rank)}</td>
         <td><button type="button" class="btn sm" data-sid="${esc(r.series_id)}" aria-label="Inspect store ${r.store_nbr} ${esc(famLabel(r.family))}">Inspect</button></td></tr>`).join("")}
     </tbody></table>`;
     box.querySelectorAll("button[data-sid]").forEach((b) => b.addEventListener("click", () => { state.series = b.dataset.sid; push(); drawTable(); drawDetail(); sel("#ex-detail h2")?.focus(); }));
@@ -92,7 +92,7 @@ export async function render(el, params) {
       <div id="ex-comp" class="chart short"></div>
       <h3>Hard-flag reasons</h3>
       ${r.hard_flags.length ? `<ul class="clean">${r.hard_flags.map((f) => `<li class="flag">${esc(f)}</li>`).join("")}</ul>` : '<p class="small muted">None. The band comes from the score alone.</p>'}
-      <p class="small">14-day forecast <b class="num">${fmtNum(r.forecast_14d)}</b> units; ${WINDOW_BAND_LABEL}: <span class="num">${fmtNum(r.p10_14d)} – ${fmtNum(r.p90_14d)}</span>.</p>
+      <p class="small">14-day forecast index <b class="num">${fmtNum(r.forecast_14d_index, 1)}</b>; ${WINDOW_BAND_LABEL}: <span class="num">${fmtNum(r.p10_14d_index, 1)} – ${fmtNum(r.p90_14d_index, 1)}</span> (mean day over the 14 days; ${esc(INDEX_NOTE)})</p>
       <p class="caption" id="ex-wb" hidden></p>
       ${slugs.has(slug) ? `<a class="btn sm" href="${viewHref("workspace", { series: slug })}">Open in Forecast Workspace →</a>` : '<p class="small muted">No per-series file published for this series.</p>'}`;
     fillWindowBandCaption(box.querySelector("#ex-wb"));

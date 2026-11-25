@@ -34,7 +34,7 @@ Earlier, three data tests failed because they still asserted "no holdout rows" a
 | Panel facts | 79,008 rows (96 series × 823 days); 384 closed rows (25 Dec and 1 Jan only, 192 each); 1,536 future rows | from `data/processed/panel.parquet` |
 | PRODUCE recording gap | zero share on open store-days 48.3 % before 2015-06-01, 0.0 % from then on (`sql/11_produce_recording_gap.sql`) | handled by window start (DECISIONS #5) |
 | Open zero-sales days in scope | 1 each in CLEANING, PERSONAL CARE and FROZEN FOODS over 2015-06-01 to 2017-06-27; 0 elsewhere (`outputs/eda/eda_extras.json`) | negligible |
-| EDA reconciles with the panel | `test_eda::test_weekly_totals_reconcile_with_panel` (weekly totals vs panel to 1e-6); `test_demand_dow_profile_mean_one`; schema validation of `demand.json` and the analogue | pass |
+| EDA reconciles with the panel | `test_eda::test_weekly_family_index_reconciles_with_panel` (equal-weighted weekly family index vs an independent panel recomputation); `test_demand_dow_profile_mean_one`; schema validation of `demand.json` and the analogue | pass |
 | Metrics behave on edge cases | `test_metrics`: hand-computed WAPE; bias sign; zero denominator → NaN with a flag; empty input; NaN pairs dropped; ratio-of-sums grouping; week-bucket totals | pass |
 | Dashboard numbers reconcile with outputs | `test_reconciliation` (14 tests): KPIs, hero, findings, arena holdout overall and week buckets, intervals, trust, S&OP totals and FVA, scenario baselines, 4 sample series files, recomputed independently from `outputs/` and the panel | pass |
 

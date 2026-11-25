@@ -70,11 +70,13 @@ def select_scope(cutoff: str, raw=None) -> dict:
     p = tr[tr["store_nbr"].isin(chosen) & tr["family"].isin(C.FAMILIES) & (tr["date"] >= C.MODEL_START)]
     p = p.merge(tot, on=["store_nbr", "date"]); p = p[p["store_total"] > 0]
     g = p.groupby(["store_nbr", "family"])
+    # No per-series mean sales or mean promo count: those are the private index bases (src/indexing.py) and are
+    # never published (Kaggle rules: raw competition data is not redistributed).
     stats = pd.DataFrame({
-        "mean_daily_sales": g["sales"].mean(), "cv": g["sales"].std() / g["sales"].mean(),
+        "cv": g["sales"].std() / g["sales"].mean(),
         "zero_share": g["sales"].apply(lambda s: (s == 0).mean()),
         "promo_day_share": g["onpromotion"].apply(lambda s: (s > 0).mean()),
-        "mean_promo_count": g["onpromotion"].mean(), "n_open_days": g.size(),
+        "n_open_days": g.size(),
     }).reset_index()
     stats["series_id"] = stats["store_nbr"].astype(str) + "|" + stats["family"]
     return {

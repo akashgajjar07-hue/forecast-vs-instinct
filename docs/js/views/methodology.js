@@ -1,4 +1,6 @@
-import { load, esc, fmtDate, fmtNum, fmtPct, addDays, dayDiff, viewHead, C, REPO, tableWrapAttrs } from "../core.js";
+import { load, esc, fmtDate, fmtNum, fmtPct, addDays, dayDiff, viewHead, C, REPO, tableWrapAttrs, INDEX_NOTE, PROMO_INDEX_NOTE } from "../core.js";
+
+export const DATA_LICENCE = "Built on the Kaggle Store Sales – Time Series Forecasting competition data (Corporación Favorita). Raw competition data is not redistributed; the site shows only aggregated/indexed values and model outputs. Reproduce by downloading the data from Kaggle after accepting the competition rules.";
 
 // OWNER: paste your LinkedIn profile URL here (left empty on purpose; the card shows a placeholder until filled).
 const LINKEDIN_URL = "";
@@ -89,13 +91,22 @@ export async function render(el) {
         <div><b>${fmtPct(intervals.level <= 1 ? intervals.level * 100 : intervals.level, 0)}</b>nominal level</div>
         <div><b>${fmtPct(intervals.calibration_coverage)}</b>calibration coverage</div>
         <div><b>${fmtPct(intervals.holdout.coverage)}</b>holdout coverage</div>
-        <div><b>${fmtNum(intervals.holdout.mean_width, 1)}</b>mean width (holdout)</div>
+        <div><b>${fmtNum(intervals.holdout.mean_width, 1)}</b>mean width (holdout, index points)</div>
+        ${typeof intervals.holdout.mean_width_pct === "number" ? `<div><b>${fmtPct(intervals.holdout.mean_width_pct)}</b>width as % of forecast</div>` : ""}
       </div>
       ${trust ? `<p class="small muted">Trust bands: ${trust.bands.map((b) => `${esc(b.band)} ≥ ${fmtNum(b.min)}`).join(", ")}; any hard flag forces Review.</p>` : ""}
     </section>
   </div>
   <section class="card"><h2>Data caveats and limitations</h2><ul class="clean">${meta.caveats.map((c) => `<li>${esc(c)}</li>`).join("")}${intervals.window_band && typeof intervals.window_band.explanation === "string" && intervals.window_band.explanation.trim() ? `<li><b>14-day total interval:</b> ${esc(intervals.window_band.explanation)}</li>` : ""}</ul>
     <p class="small muted">Citation: ${esc(meta.citation)}</p><p class="small muted">Results generated ${esc(meta.generated_at)}.</p></section>
+  <section class="card" id="data-licence"><h2>Data licence</h2>
+    <p>${esc(DATA_LICENCE)}</p>
+    <ul class="clean small">
+      <li>Per-series values (one store × one family) are shown only as an index. ${esc(INDEX_NOTE)}</li>
+      <li>${esc(PROMO_INDEX_NOTE)} Raw promoted-item counts are not published.</li>
+      <li>Family and portfolio series (Demand Explorer, chain outlook, Scenario Lab baselines in index-days) are equal-weighted means of the member series' indexes. The only unit value published is the portfolio 14-day forecast total of all 96 series. MAE, RMSE and interval widths are in index points.</li>
+      <li>Index bases are never published. Converting an index back to units needs the competition data, which anyone can download from Kaggle after accepting the rules and process with the repository's scripts.</li>
+    </ul></section>
   <div class="grid g2">
     <section class="card"><h2>Project documents</h2><p class="small">Full write-ups live in the repository.</p>
       <div class="links">${docs.map(([p, l]) => `<a class="btn sm" href="${REPO}/blob/main/${p}" target="_blank" rel="noopener">${l} ↗</a>`).join("")}<a class="btn sm" href="${REPO}" target="_blank" rel="noopener">Repository ↗</a></div></section>

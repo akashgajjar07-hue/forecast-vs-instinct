@@ -114,13 +114,13 @@ def run_scenario(inp: dict) -> dict:
     q = demand[recommended]
     gap = q - supply
     parts = [
-        f"Plan to the {LABEL[recommended]} scenario ({fmt_int(q)} units): lowest expected cost "
+        f"Plan to the {LABEL[recommended]} scenario ({fmt_int(q)} index-days): lowest expected cost "
         f"({fmt_int(expected[recommended])}) with weights low/base/high = {fmt_int(weights['low'] * 100)}/"
         f"{fmt_int(weights['base'] * 100)}/{fmt_int(weights['high'] * 100)} % and an under:over cost ratio of "
         f"{fmt_int(cu)}:{fmt_int(co)}."
     ]
     if gap > 0.5:
-        parts.append(f"Available supply is {fmt_int(gap)} units short of that plan.")
+        parts.append(f"Available supply is {fmt_int(gap)} index-days short of that plan.")
         if timing["status"] == "late":
             parts.append(f"The standard order-by date passed {fmt_int(-timing['order_in_days'])} days ago: "
                          "expedite, reallocate stock or agree a substitution.")
@@ -131,7 +131,7 @@ def run_scenario(inp: dict) -> dict:
             parts.append(f"Place the replenishment within {fmt_int(timing['order_in_days'])} days "
                          "(event start minus lead time).")
     elif gap < -0.5:
-        parts.append(f"Available supply exceeds that plan by {fmt_int(-gap)} units: hold or reallocate the excess "
+        parts.append(f"Available supply exceeds that plan by {fmt_int(-gap)} index-days: hold or reallocate the excess "
                      "rather than reorder.")
     else:
         parts.append("Available supply matches that plan: no replenishment decision is needed.")

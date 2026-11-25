@@ -70,3 +70,36 @@ Rebuild: `.venv/bin/python scripts/build_notebooks.py --execute` (about 1 min), 
 ## Suggestions for the owner (not acted on, outside this scope)
 - Promo hard flag: use a recent-window percentile, or flag only plans beyond the training range.
 - Intervals: use weekday-aware quantiles to fix the under-coverage on Sundays.
+
+## Compliance update (Kaggle rule 7B: no raw competition data)
+
+- Notebook 02, masked-view demo (12|BEVERAGES): shows a sales index (÷ series mean daily sales on open days
+  2015-06-01..2017-02-06 × 100) and a promo index (÷ series mean promoted-item count 2015-06-01..T0 × 100) instead of raw
+  sales/onpromotion. Masking is applied to the raw panel first, then indexed, so the NaNs (sales after T in A and B,
+  promo after T only in B) are unchanged. Bases come from `src/indexing.py` and are never printed.
+- Notebook 03, worked example (36|DAIRY, origin 2017-07-11): table, chart (axis "Index (training-period mean = 100)"),
+  scale_T, the five models' 14-day forecasts (mean daily ÷ base × 100) and the promo flag check (promo index, base up
+  to T) are shown on the index scale. Every hand computation and assertion still runs in units internally.
+- Notebook 01 (hand-made, re-executed with nbconvert): removed the per-series `mean` from the volatility strip-plot hover
+  and table, the per-family median of per-series `mean_promo_count`, and `mean_sales`/`median_sales` from the promo-bin
+  hover (some bins pool 1-2 stores). Remaining unit values are family/chain aggregates over the 12 stores (or the
+  2-store Manabí group in the earthquake section).
+- STUDY_GUIDE.md Part 2 and the WAPE example use the same index values (computed from the real data).
+
+## Compliance round 2 (portfolio-only units)
+
+Owner rule: per-series values only as % or index; the only unit values are portfolio totals over all 96 series.
+- Notebook 01 (hand-made, edited and re-executed with nbconvert): weekly family chart = equal-weighted family index
+  (`eda.family_weekly_index`); top weeks, December share (per series, then mean over the family), 52-week trend,
+  day-of-week profile (`eda.equal_weighted_dow`), PRODUCE weekday promo profile (promo index), holiday table (% only),
+  per-holiday heatmap (per store-family % change, then mean over stores), earthquake table and weekly chart, oil chart
+  are all equal-weighted / index-based. Family volumes and volume shares are no longer shown. Narrative numbers were
+  updated from the executed outputs (e.g. PRODUCE now peaks on Tuesday, 1.24; biggest equal-weighted week 2016-12-19,
+  2.20x the median week; earthquake +18.0 % / +4.0 % other stores, +58.8 % / +73.9 % Manabí).
+- Notebook 02: the "Tuesday sells x an average day" ratio is the mean over the 96 series (0.955). The holdout
+  leaderboard keeps portfolio MAE / RMSE in units (all 96 series).
+- Notebook 03: the band-width table by family is on the index scale (mean width in index points, mean forecast index,
+  width / forecast % = sum of widths / sum of forecasts); the portfolio width stays in units (615.6) next to its index
+  value (40.9 index points). The holdout trust scatter no longer carries series / origin ids in its hover.
+- Every executed output of 01-03 was scanned programmatically (text, HTML tables, plotly x / y / z / customdata /
+  hovertemplates): remaining values above 250 are counts, index values or portfolio MAE / RMSE / width.

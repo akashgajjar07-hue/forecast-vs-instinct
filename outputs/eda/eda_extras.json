@@ -1,0 +1,1930 @@
+{
+ "window": {
+  "start": "2015-06-01",
+  "cutoff": "2017-06-27",
+  "note": "All numbers use history up to the last calibration target date; holdout untouched. The PRODUCE gap check also reads pre-window raw history (2013-2015) on purpose."
+ },
+ "overview": [
+  {
+   "family": "GROCERY I",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 0,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "BEVERAGES",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 0,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "PRODUCE",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 0,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "CLEANING",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 1,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "DAIRY",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 0,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 0,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "PERSONAL CARE",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 1,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  },
+  {
+   "family": "FROZEN FOODS",
+   "n_stores": 12,
+   "n_store_days": 9096,
+   "n_closed_store_days": 48.0,
+   "n_open_zero_days": 1,
+   "first_date": "2015-06-01",
+   "last_date": "2017-06-27"
+  }
+ ],
+ "trend_52w": [
+  {
+   "family": "BEVERAGES",
+   "first_52w_mean_index": 98.04,
+   "last_52w_mean_index": 106.66,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 8.79
+  },
+  {
+   "family": "DAIRY",
+   "first_52w_mean_index": 93.0,
+   "last_52w_mean_index": 110.56,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 18.88
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "first_52w_mean_index": 98.47,
+   "last_52w_mean_index": 99.99,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 1.54
+  },
+  {
+   "family": "GROCERY I",
+   "first_52w_mean_index": 96.6,
+   "last_52w_mean_index": 106.18,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 9.91
+  },
+  {
+   "family": "FROZEN FOODS",
+   "first_52w_mean_index": 95.92,
+   "last_52w_mean_index": 101.8,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 6.12
+  },
+  {
+   "family": "CLEANING",
+   "first_52w_mean_index": 98.68,
+   "last_52w_mean_index": 103.37,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 4.75
+  },
+  {
+   "family": "PERSONAL CARE",
+   "first_52w_mean_index": 100.04,
+   "last_52w_mean_index": 99.58,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": -0.46
+  },
+  {
+   "family": "PRODUCE",
+   "first_52w_mean_index": 98.41,
+   "last_52w_mean_index": 104.27,
+   "first_52w_start": "2015-06-01",
+   "last_52w_start": "2016-06-27",
+   "change_pct": 5.96
+  }
+ ],
+ "peak_week_all_families": {
+  "week_start": "2016-12-19",
+  "mean_index": 214.18,
+  "median_week_mean_index": 97.44
+ },
+ "produce_recording_gap": {
+  "zero_share_before_window": {
+   "BEVERAGES": 0.0,
+   "BREAD/BAKERY": 0.0,
+   "CLEANING": 0.0,
+   "DAIRY": 0.0,
+   "FROZEN FOODS": 0.0009,
+   "GROCERY I": 0.0,
+   "PERSONAL CARE": 0.0,
+   "PRODUCE": 0.4831
+  },
+  "zero_share_in_window": {
+   "BEVERAGES": 0.0,
+   "BREAD/BAKERY": 0.0,
+   "CLEANING": 0.0001,
+   "DAIRY": 0.0,
+   "FROZEN FOODS": 0.0001,
+   "GROCERY I": 0.0,
+   "PERSONAL CARE": 0.0001,
+   "PRODUCE": 0.0
+  },
+  "monthly": {
+   "month": [
+    "2013-01-01",
+    "2013-02-01",
+    "2013-03-01",
+    "2013-04-01",
+    "2013-05-01",
+    "2013-06-01",
+    "2013-07-01",
+    "2013-08-01",
+    "2013-09-01",
+    "2013-10-01",
+    "2013-11-01",
+    "2013-12-01",
+    "2014-01-01",
+    "2014-02-01",
+    "2014-03-01",
+    "2014-04-01",
+    "2014-05-01",
+    "2014-06-01",
+    "2014-07-01",
+    "2014-08-01",
+    "2014-09-01",
+    "2014-10-01",
+    "2014-11-01",
+    "2014-12-01",
+    "2015-01-01",
+    "2015-02-01",
+    "2015-03-01",
+    "2015-04-01",
+    "2015-05-01",
+    "2015-06-01",
+    "2015-07-01",
+    "2015-08-01",
+    "2015-09-01",
+    "2015-10-01",
+    "2015-11-01",
+    "2015-12-01",
+    "2016-01-01",
+    "2016-02-01",
+    "2016-03-01",
+    "2016-04-01",
+    "2016-05-01",
+    "2016-06-01",
+    "2016-07-01",
+    "2016-08-01",
+    "2016-09-01",
+    "2016-10-01",
+    "2016-11-01",
+    "2016-12-01",
+    "2017-01-01",
+    "2017-02-01",
+    "2017-03-01",
+    "2017-04-01",
+    "2017-05-01",
+    "2017-06-01"
+   ],
+   "by_family": {
+    "BEVERAGES": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "BREAD/BAKERY": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "CLEANING": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0027,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "DAIRY": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "FROZEN FOODS": [
+     0.0,
+     0.0198,
+     0.0108,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0028,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "GROCERY I": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "PERSONAL CARE": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0027,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "PRODUCE": [
+     1.0,
+     1.0,
+     0.7993,
+     0.6074,
+     0.6225,
+     0.6167,
+     0.6258,
+     0.6161,
+     0.6367,
+     0.6806,
+     0.65,
+     0.6233,
+     0.0,
+     0.6214,
+     0.0,
+     0.6167,
+     0.6198,
+     0.5848,
+     0.0,
+     0.5176,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.5788,
+     0.5812,
+     0.5983,
+     0.5848,
+     0.593,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "definition": "Share of open store-days (store sold something across all 33 families) with zero recorded sales, 12 scope stores, raw train.csv."
+ },
+ "earthquake": {
+  "definition": "Equal-weighted mean index (series training-period mean = 100) over the 30 days before 2016-04-16 (pre), 2016-04-16..2016-05-15 (quake) and the 30 days after (post): per series mean daily index, then the plain mean over the group's series; change = quake vs mean of pre and post. Manabi = stores 53 (Manta) and 54 (El Carmen). Descriptive.",
+  "by_family": [
+   {
+    "family": "BEVERAGES",
+    "store_group": "Manabi",
+    "pre": 75.49,
+    "quake": 133.18,
+    "post": 123.04,
+    "quake_vs_pre_post_pct": 34.16,
+    "quake_vs_pre_pct": 76.41,
+    "post_vs_pre_pct": 62.98
+   },
+   {
+    "family": "BEVERAGES",
+    "store_group": "Other",
+    "pre": 93.16,
+    "quake": 115.92,
+    "post": 90.23,
+    "quake_vs_pre_post_pct": 26.42,
+    "quake_vs_pre_pct": 24.43,
+    "post_vs_pre_pct": -3.15
+   },
+   {
+    "family": "BREAD/BAKERY",
+    "store_group": "Manabi",
+    "pre": 78.29,
+    "quake": 126.61,
+    "post": 138.5,
+    "quake_vs_pre_post_pct": 16.81,
+    "quake_vs_pre_pct": 61.73,
+    "post_vs_pre_pct": 76.92
+   },
+   {
+    "family": "BREAD/BAKERY",
+    "store_group": "Other",
+    "pre": 89.17,
+    "quake": 104.36,
+    "post": 101.23,
+    "quake_vs_pre_post_pct": 9.62,
+    "quake_vs_pre_pct": 17.04,
+    "post_vs_pre_pct": 13.52
+   },
+   {
+    "family": "CLEANING",
+    "store_group": "Manabi",
+    "pre": 80.39,
+    "quake": 134.89,
+    "post": 152.79,
+    "quake_vs_pre_post_pct": 15.7,
+    "quake_vs_pre_pct": 67.8,
+    "post_vs_pre_pct": 90.07
+   },
+   {
+    "family": "CLEANING",
+    "store_group": "Other",
+    "pre": 92.11,
+    "quake": 107.07,
+    "post": 95.71,
+    "quake_vs_pre_post_pct": 14.01,
+    "quake_vs_pre_pct": 16.24,
+    "post_vs_pre_pct": 3.91
+   },
+   {
+    "family": "DAIRY",
+    "store_group": "Manabi",
+    "pre": 82.87,
+    "quake": 129.86,
+    "post": 146.31,
+    "quake_vs_pre_post_pct": 13.33,
+    "quake_vs_pre_pct": 56.7,
+    "post_vs_pre_pct": 76.55
+   },
+   {
+    "family": "DAIRY",
+    "store_group": "Other",
+    "pre": 98.4,
+    "quake": 109.6,
+    "post": 105.46,
+    "quake_vs_pre_post_pct": 7.53,
+    "quake_vs_pre_pct": 11.39,
+    "post_vs_pre_pct": 7.18
+   },
+   {
+    "family": "FROZEN FOODS",
+    "store_group": "Manabi",
+    "pre": 78.31,
+    "quake": 90.86,
+    "post": 96.65,
+    "quake_vs_pre_post_pct": 3.86,
+    "quake_vs_pre_pct": 16.02,
+    "post_vs_pre_pct": 23.41
+   },
+   {
+    "family": "FROZEN FOODS",
+    "store_group": "Other",
+    "pre": 70.01,
+    "quake": 76.47,
+    "post": 67.57,
+    "quake_vs_pre_post_pct": 11.16,
+    "quake_vs_pre_pct": 9.21,
+    "post_vs_pre_pct": -3.5
+   },
+   {
+    "family": "GROCERY I",
+    "store_group": "Manabi",
+    "pre": 82.49,
+    "quake": 131.26,
+    "post": 132.71,
+    "quake_vs_pre_post_pct": 21.99,
+    "quake_vs_pre_pct": 59.11,
+    "post_vs_pre_pct": 60.87
+   },
+   {
+    "family": "GROCERY I",
+    "store_group": "Other",
+    "pre": 92.2,
+    "quake": 119.72,
+    "post": 98.33,
+    "quake_vs_pre_post_pct": 25.67,
+    "quake_vs_pre_pct": 29.85,
+    "post_vs_pre_pct": 6.65
+   },
+   {
+    "family": "PERSONAL CARE",
+    "store_group": "Manabi",
+    "pre": 79.88,
+    "quake": 164.7,
+    "post": 202.62,
+    "quake_vs_pre_post_pct": 16.6,
+    "quake_vs_pre_pct": 106.18,
+    "post_vs_pre_pct": 153.65
+   },
+   {
+    "family": "PERSONAL CARE",
+    "store_group": "Other",
+    "pre": 93.78,
+    "quake": 124.08,
+    "post": 98.31,
+    "quake_vs_pre_post_pct": 29.19,
+    "quake_vs_pre_pct": 32.32,
+    "post_vs_pre_pct": 4.84
+   },
+   {
+    "family": "PRODUCE",
+    "store_group": "Manabi",
+    "pre": 88.65,
+    "quake": 115.39,
+    "post": 131.64,
+    "quake_vs_pre_post_pct": 4.77,
+    "quake_vs_pre_pct": 30.17,
+    "post_vs_pre_pct": 48.5
+   },
+   {
+    "family": "PRODUCE",
+    "store_group": "Other",
+    "pre": 97.76,
+    "quake": 99.99,
+    "post": 98.74,
+    "quake_vs_pre_post_pct": 1.77,
+    "quake_vs_pre_pct": 2.27,
+    "post_vs_pre_pct": 1.0
+   }
+  ],
+  "all_families": [
+   {
+    "store_group": "Manabi",
+    "pre": 80.8,
+    "quake": 128.34,
+    "post": 140.53,
+    "quake_vs_pre_post_pct": 15.98,
+    "quake_vs_pre_pct": 58.85,
+    "post_vs_pre_pct": 73.93
+   },
+   {
+    "store_group": "Other",
+    "pre": 90.82,
+    "quake": 107.15,
+    "post": 94.45,
+    "quake_vs_pre_post_pct": 15.67,
+    "quake_vs_pre_pct": 17.98,
+    "post_vs_pre_pct": 3.99
+   }
+  ]
+ },
+ "payday": {
+  "definition": "index = sales / same store-family, same month, same weekday mean on non-payday days; payday = 15th or last day of month; day_after = 16th or 1st; days off, Work Days, Events and the earthquake month excluded.",
+  "by_family": [
+   {
+    "family": "BEVERAGES",
+    "payday_index": 1.0108,
+    "day_after_index": 1.0692,
+    "other_index": 0.9949,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "BREAD/BAKERY",
+    "payday_index": 1.0091,
+    "day_after_index": 1.0693,
+    "other_index": 0.9949,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "CLEANING",
+    "payday_index": 0.9937,
+    "day_after_index": 1.0969,
+    "other_index": 0.9929,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "DAIRY",
+    "payday_index": 1.0042,
+    "day_after_index": 1.0622,
+    "other_index": 0.9954,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "FROZEN FOODS",
+    "payday_index": 1.0757,
+    "day_after_index": 1.0281,
+    "other_index": 0.9979,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "GROCERY I",
+    "payday_index": 1.0108,
+    "day_after_index": 1.0944,
+    "other_index": 0.9931,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "PERSONAL CARE",
+    "payday_index": 0.9917,
+    "day_after_index": 1.1385,
+    "other_index": 0.9898,
+    "n_payday_store_days": 514
+   },
+   {
+    "family": "PRODUCE",
+    "payday_index": 1.0001,
+    "day_after_index": 1.0479,
+    "other_index": 0.9965,
+    "n_payday_store_days": 514
+   }
+  ],
+  "day_of_month_profile": [
+   {
+    "day_of_month": 1,
+    "mean_index": 1.1609,
+    "n_store_days": 2000
+   },
+   {
+    "day_of_month": 2,
+    "mean_index": 1.1171,
+    "n_store_days": 2000
+   },
+   {
+    "day_of_month": 3,
+    "mean_index": 1.1011,
+    "n_store_days": 2096
+   },
+   {
+    "day_of_month": 4,
+    "mean_index": 1.0944,
+    "n_store_days": 2208
+   },
+   {
+    "day_of_month": 5,
+    "mean_index": 1.0773,
+    "n_store_days": 2288
+   },
+   {
+    "day_of_month": 6,
+    "mean_index": 1.0464,
+    "n_store_days": 2288
+   },
+   {
+    "day_of_month": 7,
+    "mean_index": 1.0247,
+    "n_store_days": 2304
+   },
+   {
+    "day_of_month": 8,
+    "mean_index": 0.9501,
+    "n_store_days": 2192
+   },
+   {
+    "day_of_month": 9,
+    "mean_index": 0.9304,
+    "n_store_days": 2016
+   },
+   {
+    "day_of_month": 10,
+    "mean_index": 0.9528,
+    "n_store_days": 2208
+   },
+   {
+    "day_of_month": 11,
+    "mean_index": 0.9613,
+    "n_store_days": 2288
+   },
+   {
+    "day_of_month": 12,
+    "mean_index": 0.9743,
+    "n_store_days": 2104
+   },
+   {
+    "day_of_month": 13,
+    "mean_index": 0.9741,
+    "n_store_days": 2200
+   },
+   {
+    "day_of_month": 14,
+    "mean_index": 0.9834,
+    "n_store_days": 2104
+   },
+   {
+    "day_of_month": 15,
+    "mean_index": 0.9951,
+    "n_store_days": 2288
+   },
+   {
+    "day_of_month": 16,
+    "mean_index": 0.9987,
+    "n_store_days": 2208
+   },
+   {
+    "day_of_month": 17,
+    "mean_index": 0.9994,
+    "n_store_days": 2304
+   },
+   {
+    "day_of_month": 18,
+    "mean_index": 0.9876,
+    "n_store_days": 2304
+   },
+   {
+    "day_of_month": 19,
+    "mean_index": 0.9937,
+    "n_store_days": 2304
+   },
+   {
+    "day_of_month": 20,
+    "mean_index": 1.033,
+    "n_store_days": 2304
+   },
+   {
+    "day_of_month": 21,
+    "mean_index": 1.0034,
+    "n_store_days": 2104
+   },
+   {
+    "day_of_month": 22,
+    "mean_index": 0.9353,
+    "n_store_days": 2112
+   },
+   {
+    "day_of_month": 23,
+    "mean_index": 0.9506,
+    "n_store_days": 2112
+   },
+   {
+    "day_of_month": 24,
+    "mean_index": 0.9489,
+    "n_store_days": 2080
+   },
+   {
+    "day_of_month": 25,
+    "mean_index": 0.9515,
+    "n_store_days": 1880
+   },
+   {
+    "day_of_month": 26,
+    "mean_index": 0.9462,
+    "n_store_days": 2016
+   },
+   {
+    "day_of_month": 27,
+    "mean_index": 0.938,
+    "n_store_days": 2016
+   },
+   {
+    "day_of_month": 28,
+    "mean_index": 0.9855,
+    "n_store_days": 2016
+   },
+   {
+    "day_of_month": 29,
+    "mean_index": 0.9608,
+    "n_store_days": 2112
+   },
+   {
+    "day_of_month": 30,
+    "mean_index": 1.0086,
+    "n_store_days": 1920
+   },
+   {
+    "day_of_month": 31,
+    "mean_index": 1.0558,
+    "n_store_days": 1152
+   }
+  ]
+ },
+ "transactions": {
+  "note": "EDA only: transactions are not a model feature (future values unknown at forecast time). Per-store transaction levels are not published (correlations only).",
+  "pooled_corr_daily": 0.8967,
+  "pooled_n_days": 9025,
+  "median_store_corr": 0.8115,
+  "by_store": [
+   {
+    "store_nbr": 12,
+    "corr_daily": 0.7375,
+    "n_days": 751,
+    "n_missing_txn": 3
+   },
+   {
+    "store_nbr": 14,
+    "corr_daily": 0.7253,
+    "n_days": 751,
+    "n_missing_txn": 3
+   },
+   {
+    "store_nbr": 27,
+    "corr_daily": 0.8501,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 29,
+    "corr_daily": 0.8877,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 31,
+    "corr_daily": 0.8793,
+    "n_days": 753,
+    "n_missing_txn": 1
+   },
+   {
+    "store_nbr": 36,
+    "corr_daily": 0.8487,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 38,
+    "corr_daily": 0.8545,
+    "n_days": 753,
+    "n_missing_txn": 1
+   },
+   {
+    "store_nbr": 39,
+    "corr_daily": 0.7671,
+    "n_days": 753,
+    "n_missing_txn": 1
+   },
+   {
+    "store_nbr": 49,
+    "corr_daily": 0.7658,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 51,
+    "corr_daily": 0.7744,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 53,
+    "corr_daily": 0.9226,
+    "n_days": 752,
+    "n_missing_txn": 2
+   },
+   {
+    "store_nbr": 54,
+    "corr_daily": 0.7598,
+    "n_days": 752,
+    "n_missing_txn": 2
+   }
+  ]
+ },
+ "weekday_promo_profile": [
+  {
+   "family": "BEVERAGES",
+   "dow": 1,
+   "mean_promo_index": 97.06,
+   "mean_index": 100.4,
+   "mean_promo_index_last_12m": 134.88,
+   "mean_index_last_12m": 106.09,
+   "n_store_days": 1308
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 2,
+   "mean_promo_index": 94.75,
+   "mean_index": 92.67,
+   "mean_promo_index_last_12m": 130.45,
+   "mean_index_last_12m": 95.51,
+   "n_store_days": 1308
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 3,
+   "mean_promo_index": 111.19,
+   "mean_index": 90.3,
+   "mean_promo_index_last_12m": 149.01,
+   "mean_index_last_12m": 93.89,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 4,
+   "mean_promo_index": 91.33,
+   "mean_index": 80.85,
+   "mean_promo_index_last_12m": 127.96,
+   "mean_index_last_12m": 83.67,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 5,
+   "mean_promo_index": 98.94,
+   "mean_index": 88.56,
+   "mean_promo_index_last_12m": 135.74,
+   "mean_index_last_12m": 94.11,
+   "n_store_days": 1272
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 6,
+   "mean_promo_index": 104.12,
+   "mean_index": 121.86,
+   "mean_promo_index_last_12m": 144.46,
+   "mean_index_last_12m": 127.44,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BEVERAGES",
+   "dow": 7,
+   "mean_promo_index": 102.73,
+   "mean_index": 139.42,
+   "mean_promo_index_last_12m": 139.69,
+   "mean_index_last_12m": 146.91,
+   "n_store_days": 1272
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 1,
+   "mean_promo_index": 62.52,
+   "mean_index": 100.43,
+   "mean_promo_index_last_12m": 81.3,
+   "mean_index_last_12m": 101.51,
+   "n_store_days": 1308
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 2,
+   "mean_promo_index": 62.32,
+   "mean_index": 93.4,
+   "mean_promo_index_last_12m": 80.33,
+   "mean_index_last_12m": 92.8,
+   "n_store_days": 1308
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 3,
+   "mean_promo_index": 66.7,
+   "mean_index": 90.7,
+   "mean_promo_index_last_12m": 95.58,
+   "mean_index_last_12m": 91.59,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 4,
+   "mean_promo_index": 59.75,
+   "mean_index": 81.43,
+   "mean_promo_index_last_12m": 79.69,
+   "mean_index_last_12m": 80.19,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 5,
+   "mean_promo_index": 63.26,
+   "mean_index": 85.97,
+   "mean_promo_index_last_12m": 83.26,
+   "mean_index_last_12m": 87.42,
+   "n_store_days": 1272
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 6,
+   "mean_promo_index": 62.13,
+   "mean_index": 110.48,
+   "mean_promo_index_last_12m": 82.64,
+   "mean_index_last_12m": 110.61,
+   "n_store_days": 1296
+  },
+  {
+   "family": "BREAD/BAKERY",
+   "dow": 7,
+   "mean_promo_index": 327.55,
+   "mean_index": 135.0,
+   "mean_promo_index_last_12m": 361.68,
+   "mean_index_last_12m": 137.21,
+   "n_store_days": 1272
+  },
+  {
+   "family": "CLEANING",
+   "dow": 1,
+   "mean_promo_index": 96.55,
+   "mean_index": 99.69,
+   "mean_promo_index_last_12m": 151.37,
+   "mean_index_last_12m": 101.64,
+   "n_store_days": 1308
+  },
+  {
+   "family": "CLEANING",
+   "dow": 2,
+   "mean_promo_index": 99.07,
+   "mean_index": 93.31,
+   "mean_promo_index_last_12m": 151.91,
+   "mean_index_last_12m": 92.85,
+   "n_store_days": 1308
+  },
+  {
+   "family": "CLEANING",
+   "dow": 3,
+   "mean_promo_index": 103.28,
+   "mean_index": 91.34,
+   "mean_promo_index_last_12m": 165.81,
+   "mean_index_last_12m": 92.4,
+   "n_store_days": 1296
+  },
+  {
+   "family": "CLEANING",
+   "dow": 4,
+   "mean_promo_index": 92.96,
+   "mean_index": 81.19,
+   "mean_promo_index_last_12m": 148.04,
+   "mean_index_last_12m": 83.09,
+   "n_store_days": 1296
+  },
+  {
+   "family": "CLEANING",
+   "dow": 5,
+   "mean_promo_index": 101.16,
+   "mean_index": 90.74,
+   "mean_promo_index_last_12m": 156.12,
+   "mean_index_last_12m": 96.54,
+   "n_store_days": 1272
+  },
+  {
+   "family": "CLEANING",
+   "dow": 6,
+   "mean_promo_index": 104.4,
+   "mean_index": 122.92,
+   "mean_promo_index_last_12m": 164.4,
+   "mean_index_last_12m": 126.25,
+   "n_store_days": 1296
+  },
+  {
+   "family": "CLEANING",
+   "dow": 7,
+   "mean_promo_index": 102.69,
+   "mean_index": 128.01,
+   "mean_promo_index_last_12m": 162.54,
+   "mean_index_last_12m": 130.93,
+   "n_store_days": 1272
+  },
+  {
+   "family": "DAIRY",
+   "dow": 1,
+   "mean_promo_index": 60.54,
+   "mean_index": 100.08,
+   "mean_promo_index_last_12m": 98.4,
+   "mean_index_last_12m": 109.5,
+   "n_store_days": 1308
+  },
+  {
+   "family": "DAIRY",
+   "dow": 2,
+   "mean_promo_index": 61.82,
+   "mean_index": 93.72,
+   "mean_promo_index_last_12m": 99.57,
+   "mean_index_last_12m": 100.43,
+   "n_store_days": 1308
+  },
+  {
+   "family": "DAIRY",
+   "dow": 3,
+   "mean_promo_index": 322.16,
+   "mean_index": 99.52,
+   "mean_promo_index_last_12m": 378.89,
+   "mean_index_last_12m": 110.09,
+   "n_store_days": 1296
+  },
+  {
+   "family": "DAIRY",
+   "dow": 4,
+   "mean_promo_index": 58.37,
+   "mean_index": 80.82,
+   "mean_promo_index_last_12m": 93.42,
+   "mean_index_last_12m": 85.99,
+   "n_store_days": 1296
+  },
+  {
+   "family": "DAIRY",
+   "dow": 5,
+   "mean_promo_index": 66.71,
+   "mean_index": 86.35,
+   "mean_promo_index_last_12m": 102.18,
+   "mean_index_last_12m": 94.01,
+   "n_store_days": 1272
+  },
+  {
+   "family": "DAIRY",
+   "dow": 6,
+   "mean_promo_index": 64.96,
+   "mean_index": 117.71,
+   "mean_promo_index_last_12m": 103.2,
+   "mean_index_last_12m": 126.87,
+   "n_store_days": 1296
+  },
+  {
+   "family": "DAIRY",
+   "dow": 7,
+   "mean_promo_index": 64.89,
+   "mean_index": 136.51,
+   "mean_promo_index_last_12m": 102.71,
+   "mean_index_last_12m": 147.53,
+   "n_store_days": 1272
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 1,
+   "mean_promo_index": 56.16,
+   "mean_index": 76.2,
+   "mean_promo_index_last_12m": 73.23,
+   "mean_index_last_12m": 80.31,
+   "n_store_days": 1308
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 2,
+   "mean_promo_index": 59.53,
+   "mean_index": 80.59,
+   "mean_promo_index_last_12m": 76.61,
+   "mean_index_last_12m": 71.54,
+   "n_store_days": 1308
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 3,
+   "mean_promo_index": 67.5,
+   "mean_index": 89.26,
+   "mean_promo_index_last_12m": 93.11,
+   "mean_index_last_12m": 88.94,
+   "n_store_days": 1296
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 4,
+   "mean_promo_index": 57.25,
+   "mean_index": 85.33,
+   "mean_promo_index_last_12m": 76.01,
+   "mean_index_last_12m": 89.52,
+   "n_store_days": 1296
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 5,
+   "mean_promo_index": 73.15,
+   "mean_index": 101.8,
+   "mean_promo_index_last_12m": 90.82,
+   "mean_index_last_12m": 119.57,
+   "n_store_days": 1272
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 6,
+   "mean_promo_index": 314.01,
+   "mean_index": 144.55,
+   "mean_promo_index_last_12m": 337.29,
+   "mean_index_last_12m": 153.38,
+   "n_store_days": 1296
+  },
+  {
+   "family": "FROZEN FOODS",
+   "dow": 7,
+   "mean_promo_index": 72.18,
+   "mean_index": 90.65,
+   "mean_promo_index_last_12m": 89.53,
+   "mean_index_last_12m": 89.34,
+   "n_store_days": 1272
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 1,
+   "mean_promo_index": 96.75,
+   "mean_index": 100.28,
+   "mean_promo_index_last_12m": 137.52,
+   "mean_index_last_12m": 105.55,
+   "n_store_days": 1308
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 2,
+   "mean_promo_index": 97.99,
+   "mean_index": 94.44,
+   "mean_promo_index_last_12m": 137.78,
+   "mean_index_last_12m": 96.94,
+   "n_store_days": 1308
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 3,
+   "mean_promo_index": 105.91,
+   "mean_index": 92.94,
+   "mean_promo_index_last_12m": 157.5,
+   "mean_index_last_12m": 97.58,
+   "n_store_days": 1296
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 4,
+   "mean_promo_index": 94.29,
+   "mean_index": 83.69,
+   "mean_promo_index_last_12m": 135.46,
+   "mean_index_last_12m": 87.02,
+   "n_store_days": 1296
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 5,
+   "mean_promo_index": 100.95,
+   "mean_index": 90.02,
+   "mean_promo_index_last_12m": 141.28,
+   "mean_index_last_12m": 96.63,
+   "n_store_days": 1272
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 6,
+   "mean_promo_index": 103.54,
+   "mean_index": 119.3,
+   "mean_promo_index_last_12m": 146.17,
+   "mean_index_last_12m": 125.39,
+   "n_store_days": 1296
+  },
+  {
+   "family": "GROCERY I",
+   "dow": 7,
+   "mean_promo_index": 100.65,
+   "mean_index": 128.34,
+   "mean_promo_index_last_12m": 140.9,
+   "mean_index_last_12m": 133.28,
+   "n_store_days": 1272
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 1,
+   "mean_promo_index": 97.62,
+   "mean_index": 100.17,
+   "mean_promo_index_last_12m": 144.83,
+   "mean_index_last_12m": 99.69,
+   "n_store_days": 1308
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 2,
+   "mean_promo_index": 99.02,
+   "mean_index": 93.6,
+   "mean_promo_index_last_12m": 143.55,
+   "mean_index_last_12m": 89.54,
+   "n_store_days": 1308
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 3,
+   "mean_promo_index": 104.08,
+   "mean_index": 88.44,
+   "mean_promo_index_last_12m": 157.02,
+   "mean_index_last_12m": 87.96,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 4,
+   "mean_promo_index": 90.52,
+   "mean_index": 76.78,
+   "mean_promo_index_last_12m": 135.29,
+   "mean_index_last_12m": 77.37,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 5,
+   "mean_promo_index": 97.45,
+   "mean_index": 82.66,
+   "mean_promo_index_last_12m": 143.51,
+   "mean_index_last_12m": 83.99,
+   "n_store_days": 1272
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 6,
+   "mean_promo_index": 105.62,
+   "mean_index": 122.17,
+   "mean_promo_index_last_12m": 158.16,
+   "mean_index_last_12m": 123.55,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PERSONAL CARE",
+   "dow": 7,
+   "mean_promo_index": 105.78,
+   "mean_index": 135.92,
+   "mean_promo_index_last_12m": 158.52,
+   "mean_index_last_12m": 135.43,
+   "n_store_days": 1272
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 1,
+   "mean_promo_index": 12.94,
+   "mean_index": 90.27,
+   "mean_promo_index_last_12m": 17.47,
+   "mean_index_last_12m": 92.52,
+   "n_store_days": 1308
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 2,
+   "mean_promo_index": 364.99,
+   "mean_index": 124.89,
+   "mean_promo_index_last_12m": 384.3,
+   "mean_index_last_12m": 128.94,
+   "n_store_days": 1308
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 3,
+   "mean_promo_index": 263.96,
+   "mean_index": 105.77,
+   "mean_promo_index_last_12m": 279.11,
+   "mean_index_last_12m": 108.27,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 4,
+   "mean_promo_index": 12.5,
+   "mean_index": 79.31,
+   "mean_promo_index_last_12m": 17.36,
+   "mean_index_last_12m": 79.72,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 5,
+   "mean_promo_index": 13.15,
+   "mean_index": 84.64,
+   "mean_promo_index_last_12m": 17.71,
+   "mean_index_last_12m": 88.97,
+   "n_store_days": 1272
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 6,
+   "mean_promo_index": 13.71,
+   "mean_index": 108.88,
+   "mean_promo_index_last_12m": 18.06,
+   "mean_index_last_12m": 112.93,
+   "n_store_days": 1296
+  },
+  {
+   "family": "PRODUCE",
+   "dow": 7,
+   "mean_promo_index": 13.9,
+   "mean_index": 115.18,
+   "mean_promo_index_last_12m": 17.96,
+   "mean_index_last_12m": 117.89,
+   "n_store_days": 1272
+  }
+ ],
+ "weekday_promo_profile_definition": "Per family x ISO weekday: plain mean over the family's series of each series' mean index (sales) and mean promo index (promoted-item count / the series' mean count up to the cutoff x 100).",
+ "oil": {
+  "note": "Context only, not a model feature. Two trending series can correlate without a causal link.",
+  "first_month": "2015-06-01",
+  "first_month_mean": 59.82,
+  "last_month": "2017-06-01",
+  "last_month_mean": 45.17,
+  "min_month": "2016-02-01",
+  "min_month_mean": 30.32,
+  "monthly": [
+   {
+    "month": "2015-06-01",
+    "n_days": 30,
+    "oil_mean": 59.82,
+    "n_oil_days": 22,
+    "mean_index": 90.204
+   },
+   {
+    "month": "2015-07-01",
+    "n_days": 31,
+    "oil_mean": 50.901,
+    "n_oil_days": 22,
+    "mean_index": 89.599
+   },
+   {
+    "month": "2015-08-01",
+    "n_days": 31,
+    "oil_mean": 42.868,
+    "n_oil_days": 21,
+    "mean_index": 91.276
+   },
+   {
+    "month": "2015-09-01",
+    "n_days": 30,
+    "oil_mean": 45.48,
+    "n_oil_days": 21,
+    "mean_index": 93.897
+   },
+   {
+    "month": "2015-10-01",
+    "n_days": 31,
+    "oil_mean": 46.224,
+    "n_oil_days": 22,
+    "mean_index": 92.618
+   },
+   {
+    "month": "2015-11-01",
+    "n_days": 30,
+    "oil_mean": 42.443,
+    "n_oil_days": 20,
+    "mean_index": 88.428
+   },
+   {
+    "month": "2015-12-01",
+    "n_days": 30,
+    "oil_mean": 37.189,
+    "n_oil_days": 22,
+    "mean_index": 134.676
+   },
+   {
+    "month": "2016-01-01",
+    "n_days": 30,
+    "oil_mean": 31.683,
+    "n_oil_days": 19,
+    "mean_index": 96.761
+   },
+   {
+    "month": "2016-02-01",
+    "n_days": 29,
+    "oil_mean": 30.323,
+    "n_oil_days": 20,
+    "mean_index": 90.276
+   },
+   {
+    "month": "2016-03-01",
+    "n_days": 31,
+    "oil_mean": 37.546,
+    "n_oil_days": 22,
+    "mean_index": 89.337
+   },
+   {
+    "month": "2016-04-01",
+    "n_days": 30,
+    "oil_mean": 40.755,
+    "n_oil_days": 21,
+    "mean_index": 102.108
+   },
+   {
+    "month": "2016-05-01",
+    "n_days": 31,
+    "oil_mean": 46.712,
+    "n_oil_days": 21,
+    "mean_index": 106.598
+   },
+   {
+    "month": "2016-06-01",
+    "n_days": 30,
+    "oil_mean": 48.757,
+    "n_oil_days": 22,
+    "mean_index": 97.229
+   },
+   {
+    "month": "2016-07-01",
+    "n_days": 31,
+    "oil_mean": 44.651,
+    "n_oil_days": 20,
+    "mean_index": 98.554
+   },
+   {
+    "month": "2016-08-01",
+    "n_days": 31,
+    "oil_mean": 44.724,
+    "n_oil_days": 23,
+    "mean_index": 93.939
+   },
+   {
+    "month": "2016-09-01",
+    "n_days": 30,
+    "oil_mean": 45.182,
+    "n_oil_days": 21,
+    "mean_index": 94.399
+   },
+   {
+    "month": "2016-10-01",
+    "n_days": 31,
+    "oil_mean": 49.775,
+    "n_oil_days": 21,
+    "mean_index": 95.261
+   },
+   {
+    "month": "2016-11-01",
+    "n_days": 30,
+    "oil_mean": 45.661,
+    "n_oil_days": 21,
+    "mean_index": 98.385
+   },
+   {
+    "month": "2016-12-01",
+    "n_days": 30,
+    "oil_mean": 51.97,
+    "n_oil_days": 21,
+    "mean_index": 148.607
+   },
+   {
+    "month": "2017-01-01",
+    "n_days": 30,
+    "oil_mean": 52.504,
+    "n_oil_days": 20,
+    "mean_index": 106.497
+   },
+   {
+    "month": "2017-02-01",
+    "n_days": 28,
+    "oil_mean": 53.468,
+    "n_oil_days": 19,
+    "mean_index": 100.018
+   },
+   {
+    "month": "2017-03-01",
+    "n_days": 31,
+    "oil_mean": 49.328,
+    "n_oil_days": 23,
+    "mean_index": 101.016
+   },
+   {
+    "month": "2017-04-01",
+    "n_days": 30,
+    "oil_mean": 51.061,
+    "n_oil_days": 19,
+    "mean_index": 102.172
+   },
+   {
+    "month": "2017-05-01",
+    "n_days": 31,
+    "oil_mean": 48.476,
+    "n_oil_days": 22,
+    "mean_index": 104.43
+   },
+   {
+    "month": "2017-06-01",
+    "n_days": 27,
+    "oil_mean": 45.172,
+    "n_oil_days": 19,
+    "mean_index": 102.344
+   }
+  ],
+  "monthly_note": "mean_index = equal-weighted mean daily sales index of the 96 series (no units)."
+ },
+ "holiday_analogue_detail": {
+  "definition": "Holiday day vs same-weekday baseline: national day off (Holiday not transferred, Transfer, Bridge) compared with the mean of the same weekday 1 and 2 weeks before and after (t-14, t-7, t+7, t+14), baseline days excluding any holiday, Work Day, Event or earthquake-month day; >=2 valid baseline days per store; 12 stores summed per holiday; family value = mean over holidays; history 2015-06-01..2017-06-27.",
+  "n_holiday_family_rows": 152,
+  "day_before_summary": [
+   {
+    "family": "BEVERAGES",
+    "change_pct": -6.78208151042388,
+    "n_holidays": 13,
+    "median_pct": -2.5694799511235544,
+    "min_pct": -33.13524412244229,
+    "max_pct": 18.560743200043127
+   },
+   {
+    "family": "DAIRY",
+    "change_pct": -10.389164037920132,
+    "n_holidays": 13,
+    "median_pct": -6.7146678997258675,
+    "min_pct": -36.796737252667015,
+    "max_pct": 13.042078490711816
+   },
+   {
+    "family": "BREAD/BAKERY",
+    "change_pct": -11.764220618105565,
+    "n_holidays": 13,
+    "median_pct": -10.713428794748282,
+    "min_pct": -33.268959527330544,
+    "max_pct": 4.700210843295238
+   },
+   {
+    "family": "GROCERY I",
+    "change_pct": -6.627820306710611,
+    "n_holidays": 13,
+    "median_pct": -6.179002569213788,
+    "min_pct": -28.86750922100674,
+    "max_pct": 27.97447940097073
+   },
+   {
+    "family": "FROZEN FOODS",
+    "change_pct": 15.947001968551067,
+    "n_holidays": 13,
+    "median_pct": 7.8332406412287,
+    "min_pct": -6.538786939688324,
+    "max_pct": 51.69445875963361
+   },
+   {
+    "family": "CLEANING",
+    "change_pct": -4.487858422290914,
+    "n_holidays": 13,
+    "median_pct": -3.1923213650906557,
+    "min_pct": -25.078298502363193,
+    "max_pct": 31.459587486430472
+   },
+   {
+    "family": "PERSONAL CARE",
+    "change_pct": -10.873889360051797,
+    "n_holidays": 13,
+    "median_pct": -9.60283850291862,
+    "min_pct": -31.27530896660531,
+    "max_pct": 44.35365958544766
+   },
+   {
+    "family": "PRODUCE",
+    "change_pct": -8.553329592443053,
+    "n_holidays": 13,
+    "median_pct": -2.2156449088871266,
+    "min_pct": -32.17959273220394,
+    "max_pct": 13.634236370886278
+   }
+  ]
+ }
+}

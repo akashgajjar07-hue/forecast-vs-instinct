@@ -20,7 +20,7 @@ What this project cannot tell you, and why. Each point says what the limitation 
 
 **Short holdout.** 6 weekly origins, all in one summer: forecasts for 28 June to 15 August 2017. That is 8,064 scored rows for each model and 576 Trust windows, but only 6 distinct starting points and about 7 weeks of calendar.
 
-**No December peak.** FROZEN FOODS puts 30.0 % of its in-window volume into December, and its hardest season was never in the holdout. Christmas and New Year closures were never inside a holdout window, so the `holiday_closure` hard flag was never tested.
+**No December peak.** A FROZEN FOODS series sells on average 30.0 % of its in-window sales in December, and its hardest season was never in the holdout. Christmas and New Year closures were never inside a holdout window, so the `holiday_closure` hard flag was never tested.
 
 **Few holiday days.** The holdout has only 176 holiday rows per model (one national day, 11 August, plus a few local days). The finding that the moving average beat LightGBM on holidays (16.41 % vs 17.13 % WAPE) is indicative only.
 
@@ -60,7 +60,7 @@ What this project cannot tell you, and why. Each point says what the limitation 
 
 **FVA is simulated.** The forecast value added figure (−0.45 pp) comes from a mechanical bias-correction rule, not from real planner overrides. It says nothing about how well a real planner would do.
 
-**The UAE Scenario Lab is hypothetical.** Its baselines are real Ecuadorian model forecasts, but the event percentages (Ramadan, Eid al-Fitr, Eid al-Adha, Summer, Promo campaign) are editable demonstration assumptions, not measured UAE uplift. The expected-cost weights (0.25 / 0.5 / 0.25) are also fixed assumptions.
+**The UAE Scenario Lab is hypothetical.** Its baselines are real Ecuadorian model forecasts, expressed in index-days (1,400 = 14 average training-period days for an average store), but the event percentages (Ramadan, Eid al-Fitr, Eid al-Adha, Summer, Promo campaign) are editable demonstration assumptions, not measured UAE uplift. The expected-cost weights (0.25 / 0.5 / 0.25) are also fixed assumptions.
 
 **Promotion what-if is not causal and not always sensible.** Scaling the promotion plan shows the model's predicted response. It is non-monotonic in many series (for example, −100 % promotions raises the 49|GROCERY I forecast by 7.4 %), and removing all promotions is below anything in history for 71 of 96 series.
 

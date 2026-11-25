@@ -92,11 +92,13 @@ def main():
 
     # 4. forward 14-day bands
     fw = apply_window_band(ch[ch.stage == "forward"], q)
-    res["forward"] = [{"series_id": r.series_id, "family": r.family, "forecast_14d": float(r.forecast),
-                       "p10_14d": float(r.p10), "p90_14d": float(r.p90)} for r in fw.itertuples()]
+    # per-series forward bands are in units, so they go to a git-ignored parquet, not to the committed JSON
+    pd.DataFrame([{"series_id": r.series_id, "family": r.family, "forecast_14d": float(r.forecast),
+                   "p10_14d": float(r.p10), "p90_14d": float(r.p90)} for r in fw.itertuples()]).to_parquet(
+        C.OUTPUTS / "holdout" / "window_band_forward.parquet", index=False)
     res["frozen_sha256"] = (C.OUTPUTS / f"{NAME}.sha256").read_text().strip()
     (C.OUTPUTS / "window_band_results.json").write_text(json.dumps(res, indent=2))
-    print(json.dumps({k: v for k, v in res.items() if k not in ("forward", "by_family")}, indent=1))
+    print(json.dumps({k: v for k, v in res.items() if k != "by_family"}, indent=1))
     print(pd.DataFrame(res["by_family"]).round(1).to_string())
 
 

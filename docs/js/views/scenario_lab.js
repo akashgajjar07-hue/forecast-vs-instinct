@@ -24,17 +24,18 @@ export async function render(el, params) {
       <div class="inputs-grid">
         <label class="field"><span>Event</span><select id="sl-event">${options(events.map((e) => [e.id, e.label]), state.event)}</select></label>
         <label class="field"><span>Category</span><select id="sl-family">${options(fams.map((f) => [f, famLabel(f)]), state.family)}</select></label>
-        <label class="field"><span>Baseline units (14 days)</span><input type="number" id="sl-baseline" min="0" step="1"></label>
+        <label class="field"><span>Baseline (index-days, 14 days)</span><input type="number" id="sl-baseline" min="0" step="1"></label>
         <label class="field"><span>Low change %</span><input type="number" id="sl-low" step="1"></label>
         <label class="field"><span>Base change %</span><input type="number" id="sl-base" step="1"></label>
         <label class="field"><span>High change %</span><input type="number" id="sl-high" step="1"></label>
-        <label class="field"><span>Available supply (units)</span><input type="number" id="sl-supply" min="0" step="1"></label>
+        <label class="field"><span>Available supply (index-days)</span><input type="number" id="sl-supply" min="0" step="1"></label>
         <label class="field"><span>Supplier lead time (days)</span><input type="number" id="sl-lead" min="0" step="1" value="${DEFAULTS.lead}"></label>
         <label class="field"><span>Days until event start</span><input type="number" id="sl-days" min="0" step="1" value="${DEFAULTS.days}"></label>
-        <label class="field"><span>Cost per unit under-forecast</span><input type="number" id="sl-cu" min="0" step="0.1" value="${DEFAULTS.cu}"></label>
-        <label class="field"><span>Cost per unit over-forecast</span><input type="number" id="sl-co" min="0" step="0.1" value="${DEFAULTS.co}"></label>
+        <label class="field"><span>Cost per index-day under-forecast</span><input type="number" id="sl-cu" min="0" step="0.1" value="${DEFAULTS.cu}"></label>
+        <label class="field"><span>Cost per index-day over-forecast</span><input type="number" id="sl-co" min="0" step="0.1" value="${DEFAULTS.co}"></label>
       </div>
       <p class="small muted" id="sl-baseline-note" style="margin-top:10px"></p>
+      <p class="small muted">Quantities are in <b>index-days</b>: 1 index-day = one average training-period day (1 Jun 2015 – 6 Feb 2017) of an average store in the family, so 1,400 = 14 average days. Enter supply in the same unit. Store-level units are not published (Kaggle competition rules).</p>
       <button type="button" class="btn sm" id="sl-reset">Reset baseline and supply to the real forecast</button>
     </div>
     <div class="card">
@@ -48,7 +49,7 @@ export async function render(el, params) {
     <div class="card">
       <div class="card-head"><h2>Cost of each plan</h2><span class="muted small" id="sl-cr"></span></div>
       <div class="table-wrap" id="sl-cost" ${tableWrapAttrs("Hypothetical cost of each plan, scrollable")}></div>
-      <p class="caption">cost(plan, outcome) = under-cost × units short + over-cost × units left over. Expected cost uses weights low/base/high = ${DEFAULT_WEIGHTS.low * 100}/${DEFAULT_WEIGHTS.base * 100}/${DEFAULT_WEIGHTS.high * 100} %. Max regret = worst gap to the best plan for that outcome.</p>
+      <p class="caption">cost(plan, outcome) = under-cost × index-days short + over-cost × index-days left over. Expected cost uses weights low/base/high = ${DEFAULT_WEIGHTS.low * 100}/${DEFAULT_WEIGHTS.base * 100}/${DEFAULT_WEIGHTS.high * 100} %. Max regret = worst gap to the best plan for that outcome.</p>
     </div>
     <div class="card">
       <h2>Recommended action</h2>
@@ -73,7 +74,7 @@ export async function render(el, params) {
     const f = famRow(state.family);
     sel("#sl-baseline").value = Math.round(f.baseline_14d);
     sel("#sl-supply").value = Math.round(f.baseline_14d);
-    sel("#sl-baseline-note").innerHTML = `Default baseline = real 14-day champion forecast total for ${esc(famLabel(state.family))}, Favorita Ecuador (source: ${esc(f.baseline_source)}). Default supply = that baseline. Both are editable.`;
+    sel("#sl-baseline-note").innerHTML = `Default baseline = real 14-day champion forecast for ${esc(famLabel(state.family))}, Favorita Ecuador, in index-days (source: ${esc(f.baseline_source)}). Default supply = that baseline. Both are editable.`;
   }
 
   function compute() {
@@ -82,14 +83,14 @@ export async function render(el, params) {
       supply: num("#sl-supply"), lead_time_days: num("#sl-lead"), days_to_event: num("#sl-days"), cost_under: num("#sl-cu"), cost_over: num("#sl-co"),
     });
     const supply = Math.max(0, num("#sl-supply"));
-    sel("#sl-range").innerHTML = SCENARIOS.map((s) => `<div class="range-card${s === r.recommended_plan ? " rec" : ""}"><span class="small muted">${LABEL[s]} scenario${s === r.recommended_plan ? " · recommended plan" : ""}</span><b>${fmtNum(r.demand[s])}</b><span class="small">units · ${fmtPct(r.position[s].coverage_pct, 0)} covered</span></div>`).join("");
+    sel("#sl-range").innerHTML = SCENARIOS.map((s) => `<div class="range-card${s === r.recommended_plan ? " rec" : ""}"><span class="small muted">${LABEL[s]} scenario${s === r.recommended_plan ? " · recommended plan" : ""}</span><b>${fmtNum(r.demand[s])}</b><span class="small">index-days · ${fmtPct(r.position[s].coverage_pct, 0)} covered</span></div>`).join("");
     sel("#sl-pos").innerHTML = `<table><thead><tr><th>Outcome</th><th class="n">Demand</th><th class="n">Shortfall</th><th class="n">Excess</th><th class="n">Coverage</th></tr></thead><tbody>
       ${SCENARIOS.map((s) => `<tr><td>${LABEL[s]}</td><td class="n">${fmtNum(r.demand[s])}</td><td class="n">${fmtNum(r.position[s].shortfall)}</td><td class="n">${fmtNum(r.position[s].excess)}</td><td class="n">${fmtPct(r.position[s].coverage_pct, 0)}</td></tr>`).join("")}
-      </tbody></table><p class="caption">Against available supply of ${fmtNum(supply)} units. Coverage = supply ÷ demand.</p>`;
+      </tbody></table><p class="caption">Against available supply of ${fmtNum(supply)} index-days. Coverage = supply ÷ demand.</p>`;
     plot(sel("#sl-chart"), [
-      { x: SCENARIOS.map((s) => LABEL[s]), y: SCENARIOS.map((s) => r.demand[s]), type: "bar", name: "Scenario demand", marker: { color: SCENARIOS.map((s) => (s === r.recommended_plan ? C.champion : C.periwinkle)) }, hovertemplate: "%{x}: %{y:,.0f} units<extra></extra>" },
+      { x: SCENARIOS.map((s) => LABEL[s]), y: SCENARIOS.map((s) => r.demand[s]), type: "bar", name: "Scenario demand", marker: { color: SCENARIOS.map((s) => (s === r.recommended_plan ? C.champion : C.periwinkle)) }, hovertemplate: "%{x}: %{y:,.0f} index-days<extra></extra>" },
       { x: SCENARIOS.map((s) => LABEL[s]), y: SCENARIOS.map(() => supply), type: "scatter", mode: "lines", name: "Available supply", line: { color: C.text, dash: "dash", width: 2 }, hovertemplate: "supply %{y:,.0f}<extra></extra>" },
-    ], { yaxis: { title: { text: "units (14 days)" }, rangemode: "tozero" }, xaxis: { type: "category" } }, `Hypothetical scenario demand low ${Math.round(r.demand.low)}, base ${Math.round(r.demand.base)}, high ${Math.round(r.demand.high)} units against supply ${Math.round(supply)}.`);
+    ], { yaxis: { title: { text: "index-days (14 days)" }, rangemode: "tozero" }, xaxis: { type: "category" } }, `Hypothetical scenario demand low ${Math.round(r.demand.low)}, base ${Math.round(r.demand.base)}, high ${Math.round(r.demand.high)} index-days against supply ${Math.round(supply)}.`);
     sel("#sl-cr").textContent = r.critical_ratio === null ? "" : `critical ratio cu/(cu+co) = ${fmtNum(r.critical_ratio, 2)}`;
     sel("#sl-cost").innerHTML = `<table><thead><tr><th>Plan (order to)</th>${SCENARIOS.map((o) => `<th class="n">If ${LABEL[o].toLowerCase()} happens</th>`).join("")}<th class="n">Expected cost</th><th class="n">Max regret</th></tr></thead><tbody>
       ${SCENARIOS.map((p) => `<tr class="${p === r.recommended_plan ? "is-selected" : ""}"><td>${LABEL[p]} · ${fmtNum(r.demand[p])}${p === r.recommended_plan ? " ★" : ""}</td>${SCENARIOS.map((o) => `<td class="n">${fmtNum(r.cost_matrix[p][o])}</td>`).join("")}<td class="n${p === r.recommended_plan ? " best" : ""}">${fmtNum(r.expected_cost[p])}</td><td class="n">${fmtNum(r.max_regret[p])}</td></tr>`).join("")}

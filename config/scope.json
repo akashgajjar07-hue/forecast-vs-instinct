@@ -1,0 +1,1019 @@
+{
+  "cutoff_exclusive": "2017-02-07",
+  "window_start": "2015-06-01",
+  "criteria": [
+    "Only data before the first selection origin was used.",
+    "Store open since >=56 days before the modelling window start (2015-06-01).",
+    "No unexplained closure days in the window (chain-wide 1 Jan and 25 Dec closures are flagged, not disqualifying).",
+    "No zero-sales days for the 8 families on open days (no recording gaps).",
+    "Quota per store type A2/B2/C3/D3/E2; within type prefer an unused cluster, then an unused city, then volume closest to the type median (representative, not just the biggest stores)."
+  ],
+  "families": [
+    "BEVERAGES",
+    "DAIRY",
+    "BREAD/BAKERY",
+    "GROCERY I",
+    "FROZEN FOODS",
+    "CLEANING",
+    "PERSONAL CARE",
+    "PRODUCE"
+  ],
+  "stores": [
+    {
+      "store_nbr": 12,
+      "city": "Latacunga",
+      "state": "Cotopaxi",
+      "type": "C",
+      "cluster": 15,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 14,
+      "city": "Riobamba",
+      "state": "Chimborazo",
+      "type": "C",
+      "cluster": 7,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 27,
+      "city": "Daule",
+      "state": "Guayas",
+      "type": "D",
+      "cluster": 1,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 29,
+      "city": "Guayaquil",
+      "state": "Guayas",
+      "type": "E",
+      "cluster": 10,
+      "first_sale": "2015-03-20"
+    },
+    {
+      "store_nbr": 31,
+      "city": "Babahoyo",
+      "state": "Los Rios",
+      "type": "B",
+      "cluster": 10,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 36,
+      "city": "Libertad",
+      "state": "Guayas",
+      "type": "E",
+      "cluster": 10,
+      "first_sale": "2013-05-09"
+    },
+    {
+      "store_nbr": 38,
+      "city": "Loja",
+      "state": "Loja",
+      "type": "D",
+      "cluster": 4,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 39,
+      "city": "Cuenca",
+      "state": "Azuay",
+      "type": "B",
+      "cluster": 6,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 49,
+      "city": "Quito",
+      "state": "Pichincha",
+      "type": "A",
+      "cluster": 11,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 51,
+      "city": "Guayaquil",
+      "state": "Guayas",
+      "type": "A",
+      "cluster": 17,
+      "first_sale": "2013-01-02"
+    },
+    {
+      "store_nbr": 53,
+      "city": "Manta",
+      "state": "Manabi",
+      "type": "D",
+      "cluster": 13,
+      "first_sale": "2014-05-29"
+    },
+    {
+      "store_nbr": 54,
+      "city": "El Carmen",
+      "state": "Manabi",
+      "type": "C",
+      "cluster": 3,
+      "first_sale": "2013-01-02"
+    }
+  ],
+  "excluded_stores": {
+    "1": [
+      "1 closure days in modelling window"
+    ],
+    "17": [
+      "2 closure days in modelling window"
+    ],
+    "18": [
+      "110 closure days in modelling window"
+    ],
+    "21": [
+      "opened too late (needs 56 days of history before model start)",
+      "53 closure days in modelling window"
+    ],
+    "22": [
+      "opened too late (needs 56 days of history before model start)",
+      "130 closure days in modelling window"
+    ],
+    "25": [
+      "66 closure days in modelling window"
+    ],
+    "42": [
+      "opened too late (needs 56 days of history before model start)",
+      "81 closure days in modelling window"
+    ],
+    "43": [
+      "4 closure days in modelling window"
+    ],
+    "52": [
+      "opened too late (needs 56 days of history before model start)",
+      "613 closure days in modelling window"
+    ]
+  },
+  "n_eligible": 45,
+  "series": [
+    {
+      "store_nbr": 12,
+      "family": "BEVERAGES",
+      "cv": 0.2436,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8173,
+      "n_open_days": 613,
+      "series_id": "12|BEVERAGES"
+    },
+    {
+      "store_nbr": 12,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2534,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6215,
+      "n_open_days": 613,
+      "series_id": "12|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 12,
+      "family": "CLEANING",
+      "cv": 0.2393,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7455,
+      "n_open_days": 613,
+      "series_id": "12|CLEANING"
+    },
+    {
+      "store_nbr": 12,
+      "family": "DAIRY",
+      "cv": 0.2444,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6574,
+      "n_open_days": 613,
+      "series_id": "12|DAIRY"
+    },
+    {
+      "store_nbr": 12,
+      "family": "FROZEN FOODS",
+      "cv": 1.0177,
+      "zero_share": 0.0,
+      "promo_day_share": 0.4796,
+      "n_open_days": 613,
+      "series_id": "12|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 12,
+      "family": "GROCERY I",
+      "cv": 0.237,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9184,
+      "n_open_days": 613,
+      "series_id": "12|GROCERY I"
+    },
+    {
+      "store_nbr": 12,
+      "family": "PERSONAL CARE",
+      "cv": 0.3184,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6444,
+      "n_open_days": 613,
+      "series_id": "12|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 12,
+      "family": "PRODUCE",
+      "cv": 0.1913,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5432,
+      "n_open_days": 613,
+      "series_id": "12|PRODUCE"
+    },
+    {
+      "store_nbr": 14,
+      "family": "BEVERAGES",
+      "cv": 0.2648,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7732,
+      "n_open_days": 613,
+      "series_id": "14|BEVERAGES"
+    },
+    {
+      "store_nbr": 14,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2449,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6003,
+      "n_open_days": 613,
+      "series_id": "14|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 14,
+      "family": "CLEANING",
+      "cv": 0.4262,
+      "zero_share": 0.0,
+      "promo_day_share": 0.752,
+      "n_open_days": 613,
+      "series_id": "14|CLEANING"
+    },
+    {
+      "store_nbr": 14,
+      "family": "DAIRY",
+      "cv": 0.2495,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6248,
+      "n_open_days": 613,
+      "series_id": "14|DAIRY"
+    },
+    {
+      "store_nbr": 14,
+      "family": "FROZEN FOODS",
+      "cv": 2.2731,
+      "zero_share": 0.0,
+      "promo_day_share": 0.4535,
+      "n_open_days": 613,
+      "series_id": "14|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 14,
+      "family": "GROCERY I",
+      "cv": 0.2851,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8695,
+      "n_open_days": 613,
+      "series_id": "14|GROCERY I"
+    },
+    {
+      "store_nbr": 14,
+      "family": "PERSONAL CARE",
+      "cv": 0.3209,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6427,
+      "n_open_days": 613,
+      "series_id": "14|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 14,
+      "family": "PRODUCE",
+      "cv": 0.2394,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5449,
+      "n_open_days": 613,
+      "series_id": "14|PRODUCE"
+    },
+    {
+      "store_nbr": 27,
+      "family": "BEVERAGES",
+      "cv": 0.3319,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9837,
+      "n_open_days": 613,
+      "series_id": "27|BEVERAGES"
+    },
+    {
+      "store_nbr": 27,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2858,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7227,
+      "n_open_days": 613,
+      "series_id": "27|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 27,
+      "family": "CLEANING",
+      "cv": 0.2686,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9315,
+      "n_open_days": 613,
+      "series_id": "27|CLEANING"
+    },
+    {
+      "store_nbr": 27,
+      "family": "DAIRY",
+      "cv": 0.2923,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9038,
+      "n_open_days": 613,
+      "series_id": "27|DAIRY"
+    },
+    {
+      "store_nbr": 27,
+      "family": "FROZEN FOODS",
+      "cv": 0.9661,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7325,
+      "n_open_days": 613,
+      "series_id": "27|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 27,
+      "family": "GROCERY I",
+      "cv": 0.2992,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9951,
+      "n_open_days": 613,
+      "series_id": "27|GROCERY I"
+    },
+    {
+      "store_nbr": 27,
+      "family": "PERSONAL CARE",
+      "cv": 0.3605,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7259,
+      "n_open_days": 613,
+      "series_id": "27|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 27,
+      "family": "PRODUCE",
+      "cv": 0.2699,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5563,
+      "n_open_days": 613,
+      "series_id": "27|PRODUCE"
+    },
+    {
+      "store_nbr": 29,
+      "family": "BEVERAGES",
+      "cv": 0.3708,
+      "zero_share": 0.0,
+      "promo_day_share": 0.925,
+      "n_open_days": 613,
+      "series_id": "29|BEVERAGES"
+    },
+    {
+      "store_nbr": 29,
+      "family": "BREAD/BAKERY",
+      "cv": 0.3226,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7162,
+      "n_open_days": 613,
+      "series_id": "29|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 29,
+      "family": "CLEANING",
+      "cv": 0.3083,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8254,
+      "n_open_days": 613,
+      "series_id": "29|CLEANING"
+    },
+    {
+      "store_nbr": 29,
+      "family": "DAIRY",
+      "cv": 0.3656,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7553,
+      "n_open_days": 613,
+      "series_id": "29|DAIRY"
+    },
+    {
+      "store_nbr": 29,
+      "family": "FROZEN FOODS",
+      "cv": 1.3146,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6069,
+      "n_open_days": 613,
+      "series_id": "29|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 29,
+      "family": "GROCERY I",
+      "cv": 0.3574,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9902,
+      "n_open_days": 613,
+      "series_id": "29|GROCERY I"
+    },
+    {
+      "store_nbr": 29,
+      "family": "PERSONAL CARE",
+      "cv": 0.4238,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6688,
+      "n_open_days": 613,
+      "series_id": "29|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 29,
+      "family": "PRODUCE",
+      "cv": 0.4471,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6052,
+      "n_open_days": 613,
+      "series_id": "29|PRODUCE"
+    },
+    {
+      "store_nbr": 31,
+      "family": "BEVERAGES",
+      "cv": 0.3139,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9152,
+      "n_open_days": 613,
+      "series_id": "31|BEVERAGES"
+    },
+    {
+      "store_nbr": 31,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2501,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6444,
+      "n_open_days": 613,
+      "series_id": "31|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 31,
+      "family": "CLEANING",
+      "cv": 0.3175,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8662,
+      "n_open_days": 613,
+      "series_id": "31|CLEANING"
+    },
+    {
+      "store_nbr": 31,
+      "family": "DAIRY",
+      "cv": 0.303,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7308,
+      "n_open_days": 613,
+      "series_id": "31|DAIRY"
+    },
+    {
+      "store_nbr": 31,
+      "family": "FROZEN FOODS",
+      "cv": 2.123,
+      "zero_share": 0.0,
+      "promo_day_share": 0.584,
+      "n_open_days": 613,
+      "series_id": "31|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 31,
+      "family": "GROCERY I",
+      "cv": 0.3282,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9657,
+      "n_open_days": 613,
+      "series_id": "31|GROCERY I"
+    },
+    {
+      "store_nbr": 31,
+      "family": "PERSONAL CARE",
+      "cv": 0.3983,
+      "zero_share": 0.0,
+      "promo_day_share": 0.69,
+      "n_open_days": 613,
+      "series_id": "31|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 31,
+      "family": "PRODUCE",
+      "cv": 0.4067,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5856,
+      "n_open_days": 613,
+      "series_id": "31|PRODUCE"
+    },
+    {
+      "store_nbr": 36,
+      "family": "BEVERAGES",
+      "cv": 0.2807,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9592,
+      "n_open_days": 613,
+      "series_id": "36|BEVERAGES"
+    },
+    {
+      "store_nbr": 36,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2252,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6949,
+      "n_open_days": 613,
+      "series_id": "36|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 36,
+      "family": "CLEANING",
+      "cv": 0.2754,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9266,
+      "n_open_days": 613,
+      "series_id": "36|CLEANING"
+    },
+    {
+      "store_nbr": 36,
+      "family": "DAIRY",
+      "cv": 0.2584,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7635,
+      "n_open_days": 613,
+      "series_id": "36|DAIRY"
+    },
+    {
+      "store_nbr": 36,
+      "family": "FROZEN FOODS",
+      "cv": 1.1121,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5628,
+      "n_open_days": 613,
+      "series_id": "36|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 36,
+      "family": "GROCERY I",
+      "cv": 0.2903,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9837,
+      "n_open_days": 613,
+      "series_id": "36|GROCERY I"
+    },
+    {
+      "store_nbr": 36,
+      "family": "PERSONAL CARE",
+      "cv": 0.3324,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7308,
+      "n_open_days": 613,
+      "series_id": "36|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 36,
+      "family": "PRODUCE",
+      "cv": 0.442,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5856,
+      "n_open_days": 613,
+      "series_id": "36|PRODUCE"
+    },
+    {
+      "store_nbr": 38,
+      "family": "BEVERAGES",
+      "cv": 0.3737,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9902,
+      "n_open_days": 613,
+      "series_id": "38|BEVERAGES"
+    },
+    {
+      "store_nbr": 38,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2798,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7423,
+      "n_open_days": 613,
+      "series_id": "38|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 38,
+      "family": "CLEANING",
+      "cv": 0.3232,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9543,
+      "n_open_days": 613,
+      "series_id": "38|CLEANING"
+    },
+    {
+      "store_nbr": 38,
+      "family": "DAIRY",
+      "cv": 0.2589,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8809,
+      "n_open_days": 613,
+      "series_id": "38|DAIRY"
+    },
+    {
+      "store_nbr": 38,
+      "family": "FROZEN FOODS",
+      "cv": 3.1798,
+      "zero_share": 0.0016,
+      "promo_day_share": 0.7113,
+      "n_open_days": 613,
+      "series_id": "38|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 38,
+      "family": "GROCERY I",
+      "cv": 0.2941,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9984,
+      "n_open_days": 613,
+      "series_id": "38|GROCERY I"
+    },
+    {
+      "store_nbr": 38,
+      "family": "PERSONAL CARE",
+      "cv": 0.3718,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7684,
+      "n_open_days": 613,
+      "series_id": "38|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 38,
+      "family": "PRODUCE",
+      "cv": 0.316,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6003,
+      "n_open_days": 613,
+      "series_id": "38|PRODUCE"
+    },
+    {
+      "store_nbr": 39,
+      "family": "BEVERAGES",
+      "cv": 0.2897,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9331,
+      "n_open_days": 613,
+      "series_id": "39|BEVERAGES"
+    },
+    {
+      "store_nbr": 39,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2072,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7227,
+      "n_open_days": 613,
+      "series_id": "39|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 39,
+      "family": "CLEANING",
+      "cv": 0.2952,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8157,
+      "n_open_days": 613,
+      "series_id": "39|CLEANING"
+    },
+    {
+      "store_nbr": 39,
+      "family": "DAIRY",
+      "cv": 0.2786,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7504,
+      "n_open_days": 613,
+      "series_id": "39|DAIRY"
+    },
+    {
+      "store_nbr": 39,
+      "family": "FROZEN FOODS",
+      "cv": 1.2382,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5987,
+      "n_open_days": 613,
+      "series_id": "39|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 39,
+      "family": "GROCERY I",
+      "cv": 0.2942,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9788,
+      "n_open_days": 613,
+      "series_id": "39|GROCERY I"
+    },
+    {
+      "store_nbr": 39,
+      "family": "PERSONAL CARE",
+      "cv": 0.3675,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6819,
+      "n_open_days": 613,
+      "series_id": "39|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 39,
+      "family": "PRODUCE",
+      "cv": 0.3184,
+      "zero_share": 0.0,
+      "promo_day_share": 0.6672,
+      "n_open_days": 613,
+      "series_id": "39|PRODUCE"
+    },
+    {
+      "store_nbr": 49,
+      "family": "BEVERAGES",
+      "cv": 0.2848,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9951,
+      "n_open_days": 613,
+      "series_id": "49|BEVERAGES"
+    },
+    {
+      "store_nbr": 49,
+      "family": "BREAD/BAKERY",
+      "cv": 0.1945,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7537,
+      "n_open_days": 613,
+      "series_id": "49|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 49,
+      "family": "CLEANING",
+      "cv": 0.2322,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9837,
+      "n_open_days": 613,
+      "series_id": "49|CLEANING"
+    },
+    {
+      "store_nbr": 49,
+      "family": "DAIRY",
+      "cv": 0.2218,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8989,
+      "n_open_days": 613,
+      "series_id": "49|DAIRY"
+    },
+    {
+      "store_nbr": 49,
+      "family": "FROZEN FOODS",
+      "cv": 1.1614,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7749,
+      "n_open_days": 613,
+      "series_id": "49|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 49,
+      "family": "GROCERY I",
+      "cv": 0.289,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9967,
+      "n_open_days": 613,
+      "series_id": "49|GROCERY I"
+    },
+    {
+      "store_nbr": 49,
+      "family": "PERSONAL CARE",
+      "cv": 0.3678,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8124,
+      "n_open_days": 613,
+      "series_id": "49|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 49,
+      "family": "PRODUCE",
+      "cv": 0.2248,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5938,
+      "n_open_days": 613,
+      "series_id": "49|PRODUCE"
+    },
+    {
+      "store_nbr": 51,
+      "family": "BEVERAGES",
+      "cv": 0.2537,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9723,
+      "n_open_days": 613,
+      "series_id": "51|BEVERAGES"
+    },
+    {
+      "store_nbr": 51,
+      "family": "BREAD/BAKERY",
+      "cv": 0.2254,
+      "zero_share": 0.0,
+      "promo_day_share": 0.752,
+      "n_open_days": 613,
+      "series_id": "51|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 51,
+      "family": "CLEANING",
+      "cv": 0.2067,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9429,
+      "n_open_days": 613,
+      "series_id": "51|CLEANING"
+    },
+    {
+      "store_nbr": 51,
+      "family": "DAIRY",
+      "cv": 0.2045,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8809,
+      "n_open_days": 613,
+      "series_id": "51|DAIRY"
+    },
+    {
+      "store_nbr": 51,
+      "family": "FROZEN FOODS",
+      "cv": 1.029,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7586,
+      "n_open_days": 613,
+      "series_id": "51|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 51,
+      "family": "GROCERY I",
+      "cv": 0.2495,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9837,
+      "n_open_days": 613,
+      "series_id": "51|GROCERY I"
+    },
+    {
+      "store_nbr": 51,
+      "family": "PERSONAL CARE",
+      "cv": 0.3134,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7569,
+      "n_open_days": 613,
+      "series_id": "51|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 51,
+      "family": "PRODUCE",
+      "cv": 0.2486,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5318,
+      "n_open_days": 613,
+      "series_id": "51|PRODUCE"
+    },
+    {
+      "store_nbr": 53,
+      "family": "BEVERAGES",
+      "cv": 0.4452,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9886,
+      "n_open_days": 613,
+      "series_id": "53|BEVERAGES"
+    },
+    {
+      "store_nbr": 53,
+      "family": "BREAD/BAKERY",
+      "cv": 0.4347,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8091,
+      "n_open_days": 613,
+      "series_id": "53|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 53,
+      "family": "CLEANING",
+      "cv": 0.5481,
+      "zero_share": 0.0016,
+      "promo_day_share": 0.9478,
+      "n_open_days": 613,
+      "series_id": "53|CLEANING"
+    },
+    {
+      "store_nbr": 53,
+      "family": "DAIRY",
+      "cv": 0.4748,
+      "zero_share": 0.0,
+      "promo_day_share": 0.8548,
+      "n_open_days": 613,
+      "series_id": "53|DAIRY"
+    },
+    {
+      "store_nbr": 53,
+      "family": "FROZEN FOODS",
+      "cv": 1.4473,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7145,
+      "n_open_days": 613,
+      "series_id": "53|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 53,
+      "family": "GROCERY I",
+      "cv": 0.4635,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9902,
+      "n_open_days": 613,
+      "series_id": "53|GROCERY I"
+    },
+    {
+      "store_nbr": 53,
+      "family": "PERSONAL CARE",
+      "cv": 1.412,
+      "zero_share": 0.0016,
+      "promo_day_share": 0.7912,
+      "n_open_days": 613,
+      "series_id": "53|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 53,
+      "family": "PRODUCE",
+      "cv": 0.4073,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5889,
+      "n_open_days": 613,
+      "series_id": "53|PRODUCE"
+    },
+    {
+      "store_nbr": 54,
+      "family": "BEVERAGES",
+      "cv": 0.3452,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9641,
+      "n_open_days": 613,
+      "series_id": "54|BEVERAGES"
+    },
+    {
+      "store_nbr": 54,
+      "family": "BREAD/BAKERY",
+      "cv": 0.3305,
+      "zero_share": 0.0,
+      "promo_day_share": 0.646,
+      "n_open_days": 613,
+      "series_id": "54|BREAD/BAKERY"
+    },
+    {
+      "store_nbr": 54,
+      "family": "CLEANING",
+      "cv": 0.3825,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9184,
+      "n_open_days": 613,
+      "series_id": "54|CLEANING"
+    },
+    {
+      "store_nbr": 54,
+      "family": "DAIRY",
+      "cv": 0.3748,
+      "zero_share": 0.0,
+      "promo_day_share": 0.7064,
+      "n_open_days": 613,
+      "series_id": "54|DAIRY"
+    },
+    {
+      "store_nbr": 54,
+      "family": "FROZEN FOODS",
+      "cv": 1.2034,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5514,
+      "n_open_days": 613,
+      "series_id": "54|FROZEN FOODS"
+    },
+    {
+      "store_nbr": 54,
+      "family": "GROCERY I",
+      "cv": 0.3312,
+      "zero_share": 0.0,
+      "promo_day_share": 0.9886,
+      "n_open_days": 613,
+      "series_id": "54|GROCERY I"
+    },
+    {
+      "store_nbr": 54,
+      "family": "PERSONAL CARE",
+      "cv": 0.375,
+      "zero_share": 0.0,
+      "promo_day_share": 0.708,
+      "n_open_days": 613,
+      "series_id": "54|PERSONAL CARE"
+    },
+    {
+      "store_nbr": 54,
+      "family": "PRODUCE",
+      "cv": 0.2929,
+      "zero_share": 0.0,
+      "promo_day_share": 0.5579,
+      "n_open_days": 613,
+      "series_id": "54|PRODUCE"
+    }
+  ]
+}

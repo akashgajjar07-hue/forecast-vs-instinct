@@ -1,0 +1,62 @@
+{
+  "holdout_coverage": 72.56944444444444,
+  "holdout_mean_width_pct": 20.5023375,
+  "holdout_below_p10_pct": 18.92361111111111,
+  "holdout_above_p90_pct": 8.506944444444445,
+  "n_holdout_windows": 576,
+  "by_family": [
+    {
+      "family": "BEVERAGES",
+      "coverage": 63.888888888888886,
+      "mean_width_pct": 22.26309999999999,
+      "n": 72
+    },
+    {
+      "family": "BREAD/BAKERY",
+      "coverage": 61.111111111111114,
+      "mean_width_pct": 14.943000000000007,
+      "n": 72
+    },
+    {
+      "family": "CLEANING",
+      "coverage": 68.05555555555556,
+      "mean_width_pct": 34.3887,
+      "n": 72
+    },
+    {
+      "family": "DAIRY",
+      "coverage": 73.61111111111111,
+      "mean_width_pct": 12.853699999999993,
+      "n": 72
+    },
+    {
+      "family": "FROZEN FOODS",
+      "coverage": 79.16666666666666,
+      "mean_width_pct": 27.917899999999996,
+      "n": 72
+    },
+    {
+      "family": "GROCERY I",
+      "coverage": 72.22222222222221,
+      "mean_width_pct": 15.037100000000011,
+      "n": 72
+    },
+    {
+      "family": "PERSONAL CARE",
+      "coverage": 93.05555555555556,
+      "mean_width_pct": 27.49750000000001,
+      "n": 72
+    },
+    {
+      "family": "PRODUCE",
+      "coverage": 69.44444444444444,
+      "mean_width_pct": 9.117700000000006,
+      "n": 72
+    }
+  ],
+  "replaced_sum_of_daily_bounds": {
+    "holdout_coverage": 94.09722222222221,
+    "holdout_mean_width_pct": 42.089604174791745
+  },
+  "frozen_sha256": "3da4fc84e848bb0a63380e31d034be641480dd497e2f0f3467f22eb01ed9ce65"
+}

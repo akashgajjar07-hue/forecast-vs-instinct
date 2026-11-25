@@ -23,7 +23,7 @@ source (WAPE to 2 dp in prose, 4 dp in the tuning table).
    selection/calibration rows. The holdout script appended holdout/forward rows as designed. Relax these assertions.
    `pytest -m "not data"`: 115 passed, 2 skipped. `pytest -m data`: 29 passed, 3 failed.
 2. **Q6 / S&OP numbers come from `docs/data/sop.json` and `overview.json` as of 2026-11-25T21:12Z** (forecast 2,119,685;
-   Review 22 / Monitor 39 / Accept 35; Review volume share 14.3 %; 13 promo-flagged series; FVA −0.45 pp). If the export
+   Review 22 / Monitor 39 / Accept 35; 13 promo-flagged series; FVA −0.45 pp). If the export
    is regenerated, re-check README Q6, METHODOLOGY §11, STUDY_GUIDE §1.17 and Part 5.
 3. `presentations/demo.gif` does not exist yet; README references it as requested. The screenshots exist.
 4. LinkedIn is a placeholder ("link to be added") in README.

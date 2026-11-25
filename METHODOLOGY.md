@@ -298,7 +298,7 @@ This is a **model-predicted association**, not a causal effect. The response is 
 
 ## 10. UAE Scenario Lab formulas (`src/scenario.py` = `docs/scenario.js`)
 
-The Scenario Lab is a **hypothetical** planning calculator. The baseline is real (the champion's 14-day forward forecast for a family, summed over 12 stores), but the event percentages (Ramadan 5/15/30 %, Eid al-Fitr 10/25/45 %, Eid al-Adha 8/20/40 %, Summer −20/−10/0 %, Promo campaign 5/12/25 %) are **editable demonstration assumptions, not measured UAE uplift**. The Ecuador holiday analogue shown alongside is a real Ecuadorian measurement (same-weekday comparison, 1–2 weeks before and after, over 19 national holidays), not a UAE estimate.
+The Scenario Lab is a **hypothetical** planning calculator. The baseline is real (the champion's 14-day forward forecast for a family), expressed in **index-days**: 14 × the equal-weighted mean over the family's 12 series of their 14-day forecast index (mean daily forecast ÷ series base × 100), so 1,400 = 14 average training-period days for an average store. Supply is entered on the same scale. The event percentages (Ramadan 5/15/30 %, Eid al-Fitr 10/25/45 %, Eid al-Adha 8/20/40 %, Summer −20/−10/0 %, Promo campaign 5/12/25 %) are **editable demonstration assumptions, not measured UAE uplift**. The Ecuador holiday analogue shown alongside is a real Ecuadorian measurement (same-weekday comparison, 1–2 weeks before and after, over 19 national holidays), not a UAE estimate.
 
 - Demand per scenario: **D_s = max(0, baseline × (1 + pct_s / 100))**, s ∈ {low, base, high}.
 - Supply position: shortfall = max(0, D − supply); excess = max(0, supply − D); coverage % = 100 × supply ÷ D (null if D = 0).
@@ -315,7 +315,7 @@ JavaScript and Python give identical outputs on 8 shared test cases (`tests/js/s
 
 At the forward origin (2017-08-15), for each series:
 
-- `stat_forecast` = 14-day sum of the champion forecast; `p10` / `p90` = a separately calibrated band for the 14-day total (see §"14-day total band" below): holdout coverage 72.6 % vs 80 % target.
+- `stat_index` = the 14-day champion forecast on the index scale (mean daily forecast over the 14 days ÷ the series' mean daily sales on open days 2015-06-01 to 2017-02-06 × 100); `p10_index` / `p90_index` = a separately calibrated band for the 14-day total on the same scale (see §"14-day total band" below): holdout coverage 72.6 % vs 80 % target. Per-series units are not published (Kaggle rule 7B; see README "Data licence" and `src/indexing.py`); the pipeline computes everything in units and converts only at export.
 - Trust score and band, as in section 7.
 
 The summary is generated deterministically from the numbers:
@@ -324,7 +324,7 @@ The summary is generated deterministically from the numbers:
 - **Persistent bias:** families whose champion bias has the same sign and |bias| > 2 % on **both** calibration and holdout.
 - **Review queue:** all Review series sorted by priority, with the reason (the hard flag, or else the weakest non-zero-weight component).
 - **Promotion checks:** up to 4 series with the `promo_above_p95` flag (by volume), plus the 3 largest +50 % what-if changes among non-extrapolating rows (worded as associations).
-- **Discussion points:** chain total vs the last 14 observed days, Review volume share, bias, FVA, promotion-plan check.
+- **Discussion points:** chain 14-day total (units) and the equal-weighted average series index vs the last 14 observed days, the Review-band count, bias, FVA, promotion-plan check.
 
 **Simulated Forecast Value Added (FVA).** A real FVA compares the error of the statistical forecast with the error after planner overrides. We have no real overrides, so a **rule-based simulated planner** is used:
 

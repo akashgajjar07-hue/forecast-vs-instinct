@@ -111,7 +111,7 @@ On the holdout, B was slightly better in FROZEN FOODS (−0.56 pp), BREAD/BAKERY
 - **Family-level bias.** Overall bias is near zero, but family biases on the holdout ranged from −6.31 % (CLEANING) to +4.02 % (DAIRY). On calibration the model under-forecast by about 2.4 % overall; this was not re-tuned, because tuning on calibration would contaminate the intervals and Trust weights fitted there.
 - **Holidays.** Weaker on holiday days, where a simple moving average did better on a small sample.
 - **Series-level losses.** Simple models beat it on 13 of 96 series. The worst case was 54|BEVERAGES (40.95 % vs 35.23 % for Holt-Winters).
-- **Season coverage.** The holdout is 6 summer origins (late June to mid August 2017). December, the peak for FROZEN FOODS (30.0 % of its in-window volume), was not tested.
+- **Season coverage.** The holdout is 6 summer origins (late June to mid August 2017). December, the peak for FROZEN FOODS (a FROZEN FOODS series sells on average 30.0 % of its in-window sales in December), was not tested.
 - **Promotion response.** The what-if response to scaling the promotion plan is non-monotonic in many series and is an association only.
 - **Intervals** are pooled over weekdays and under-cover Sundays.
 

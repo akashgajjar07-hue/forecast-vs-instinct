@@ -1,4 +1,4 @@
-import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, fmtCompact, plot, bandTrace, C, pill, shape, viewHref, slugOf, famLabel, MODEL_LABEL, tableWrapAttrs } from "../core.js";
+import { load, esc, fmtNum, fmtPct, fmtSigned, fmtDate, fmtCompact, plot, C, pill, shape, viewHref, slugOf, famLabel, MODEL_LABEL, tableWrapAttrs, INDEX_AXIS } from "../core.js";
 
 export async function render(el) {
   const [meta, ov, index] = await Promise.all([load("meta.json"), load("overview.json"), load("series_index.json")]);
@@ -35,9 +35,9 @@ export async function render(el) {
 
   <div class="grid g-2-1">
     <section class="card">
-      <div class="card-head"><h2>Chain outlook</h2><span class="muted small">all ${fmtNum(meta.scope.n_series)} series, daily units</span></div>
+      <div class="card-head"><h2>Chain outlook</h2><span class="muted small">all ${fmtNum(meta.scope.n_series)} series, equal-weighted mean index</span></div>
       <div id="ov-outlook" class="chart tall"></div>
-      <p class="caption">Actuals (white) to ${fmtDate(meta.data_window.last_actual)}, champion forecast (mint) with P10–P90 band. Band: ${esc(ov.outlook.band_method)}</p>
+      <p class="caption">Actuals (white) to ${fmtDate(meta.data_window.last_actual)} and the champion forecast (mint), as the equal-weighted mean of the ${fmtNum(meta.scope.n_series)} series' indexes (each series: value ÷ its mean daily sales in the training period, 1 Jun 2015 – 6 Feb 2017, × 100). ${esc(ov.outlook.band_note || "")}</p>
     </section>
     <section class="card">
       <h2>Findings</h2>
@@ -50,7 +50,7 @@ export async function render(el) {
 
   <section class="card">
     <div class="card-head"><h2>Top exceptions</h2><a href="#/exceptions">All exceptions →</a></div>
-    <p class="small muted">Review and Monitor series, ordered by priority (score shortfall × volume share)</p>
+    <p class="small muted">Review and Monitor series, ordered by priority rank (score shortfall × volume share; only the rank is published)</p>
     ${ov.top_exceptions.length ? `<div class="table-wrap" ${tableWrapAttrs("Top exceptions table, scrollable")}><table class="stack-sm">
       <thead><tr><th>Series</th><th class="n">Trust score</th><th>Band</th><th>Reason</th><th><span class="sr-only">Open</span></th></tr></thead>
       <tbody>${ov.top_exceptions.map((x) => {
@@ -67,11 +67,10 @@ export async function render(el) {
   plot(
     el.querySelector("#ov-outlook"),
     [
-      { x: h.map((r) => r.date), y: h.map((r) => r.actual), type: "scatter", mode: "lines", name: "Actual", line: { color: C.actual, width: 1.6 }, connectgaps: false },
-      ...bandTrace(fx, f.map((r) => r.p10), f.map((r) => r.p90)),
-      { x: fx, y: f.map((r) => r.forecast), type: "scatter", mode: "lines", name: "Champion forecast", line: { color: C.champion, width: 2.4 } },
+      { x: h.map((r) => r.date), y: h.map((r) => r.mean_index), type: "scatter", mode: "lines", name: "Actual", line: { color: C.actual, width: 1.6 }, connectgaps: false },
+      { x: fx, y: f.map((r) => r.mean_index), type: "scatter", mode: "lines", name: "Champion forecast", line: { color: C.champion, width: 2.4 } },
     ],
-    { hovermode: "x unified", yaxis: { title: { text: "units / day" }, rangemode: "tozero" } },
-    `Chain outlook: daily actual sales to ${meta.data_window.last_actual} and 14-day champion forecast with P10 to P90 band.`
+    { hovermode: "x unified", yaxis: { title: { text: INDEX_AXIS }, rangemode: "tozero" } },
+    `Chain outlook: equal-weighted mean sales index of the 96 series to ${meta.data_window.last_actual} and the 14-day champion forecast (training-period mean = 100).`
   );
 }

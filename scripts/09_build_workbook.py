@@ -1,10 +1,15 @@
 """Build the planner workbook excel/forecast_vs_instinct_planning_workbook.xlsx (openpyxl, reproducible).
 
-Reads only finished pipeline outputs (no model is rerun):
+Reads only finished pipeline outputs (no model is rerun) and, for the private index base, the processed panel:
   outputs/holdout/champion_intervals.parquet  forward 14-day forecast + P10/P90, holdout actuals
   outputs/holdout/trust_scores.parquet        Trust Index at the forward origin 2017-08-15
   outputs/holdout_results.json                leaderboard, WAPE by family x model, trust validation
   outputs/selection.json, outputs/intervals.json, outputs/trust_weights.json, config/scope.json
+  data/processed/panel.parquet                 series index base (src/indexing.py; never written to the workbook)
+
+Per-series forecasts are written as an INDEX (value / series training-period mean daily sales x 100), never in
+units (Kaggle rule 7B: raw competition data is not redistributed). Family values are index-days (equal-weighted);
+the only unit values are the all-series 14-day forecast total and the pooled all-series leaderboard MAE/RMSE.
 
 Every calculation a planner sees is a live Excel formula (totals, trust score and band, priority,
 consensus, scenario arithmetic). Stored values are only data and finished results.
@@ -28,10 +33,24 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from src import indexing as IX  # noqa: E402
 from src import scenario as SC  # noqa: E402
 from src.backtest import evaluable  # noqa: E402
 from src.metrics import bias as m_bias, wape as m_wape  # noqa: E402
 from src.trust import describe_flags  # noqa: E402
+
+
+def _scenario_unit_word() -> str:
+    """The quantity word src/scenario.py puts in its recommendation ("units" or "index-days"), probed once."""
+    import re as _re
+    out = SC.run_scenario({"baseline": 100, "pct_low": 0, "pct_base": 0, "pct_high": 0, "supply": 100,
+                           "cost_under": 1, "cost_over": 1, "lead_time_days": 1, "days_to_event": 30})
+    return _re.search(r"scenario \([\d,]+ ([^)]+)\)", out["recommendation"]).group(1)
+
+
+# Quantity word inside the recommendation sentences: taken from src/scenario.py so the Excel sentences stay identical
+# to run_scenario (parity tests). Labels in the sheet always say index-days.
+SCN_UNIT = _scenario_unit_word()
 
 OUT = ROOT / "excel" / "forecast_vs_instinct_planning_workbook.xlsx"
 FORWARD_ORIGIN = "2017-08-15"
@@ -44,7 +63,10 @@ FC_FIRST = 5
 N_SERIES = 96
 MEASURES = ["Forecast", "P10", "P90"]
 FC_LAST = FC_FIRST + N_SERIES * len(MEASURES) - 1           # 292
-FC_TOTAL_ROW = FC_LAST + 2                                  # 294 (chain totals by measure)
+FC_PORT_ROW = FC_LAST + 2                                   # 294..296 portfolio equal-weighted mean index by measure
+FC_TOTAL_ROW = FC_PORT_ROW + len(MEASURES) + 1              # 298: the only unit value (chain 14-day total, column S)
+FC_FAM_FIRST = FC_TOTAL_ROW + 3                             # 301 (family index-days, equal-weighted)
+FC_FAM_LAST = FC_FAM_FIRST + 7                              # 308
 FC_DATE_COL1 = 5                                            # E
 FC_TOTAL_COL = FC_DATE_COL1 + 14                            # S
 
@@ -52,6 +74,7 @@ EX_WEIGHT_ROW = 5
 EX_HEADER_ROW = 6
 EX_FIRST = 7
 EX_LAST = EX_FIRST + N_SERIES - 1                           # 102
+EX_SHARE_CELL = "M4"                                        # Review share of the summed 14-day index (equal-weighted)
 
 OV_HEADER_ROW = 5
 OV_FIRST = 6
@@ -62,6 +85,15 @@ REASON_CODES = ["Upcoming promotion", "Market intelligence", "Supply disruption"
                 "Suspected forecast error"]
 ASSUMPTION_LABEL = "Editable demonstration assumptions, not measured UAE uplift"
 TAGLINE = "Beyond predicting demand. Knowing when to trust the prediction."
+LICENCE_NOTE = ("Built on the Kaggle Store Sales – Time Series Forecasting competition data (Corporación Favorita). "
+                "Raw competition data is not redistributed; the site shows only aggregated/indexed values and model "
+                "outputs. Reproduce by downloading the data from Kaggle after accepting the competition rules.")
+INDEX_NOTE = ("Index = value / the series' mean daily sales over the training period before the first selection "
+              "origin (2015-06-01 to 2017-02-06, open days) x 100, so 100 = an average training-period day. The base "
+              "is never published; converting back to units needs the Kaggle data locally (src/indexing.py).")
+INDEX_DAYS_NOTE = ("Index-days = 14 x the equal-weighted mean of the family's 12 series' 14-day mean forecast index "
+                   "(1,400 = 14 average training-period days for an average store). Equal weights carry no information "
+                   "about unit volumes.")
 DEFAULT_FAMILY = "BEVERAGES"
 # Same defaults as the dashboard Scenario Lab (docs/js/views/scenario_lab.js): Ramadan event
 # 5/15/30 %, lead time 14 d, event 28 d after the planning date, under:over cost 3:1, supply = baseline.
@@ -173,9 +205,11 @@ def load():
     intervals = json.loads((ROOT / "outputs/intervals.json").read_text())
     tw = json.loads((ROOT / "outputs/trust_weights.json").read_text())
     scope = json.loads((ROOT / "config/scope.json").read_text())
+    base = IX.series_base(pd.read_parquet(ROOT / "data/processed/panel.parquet"))
     assert fwd["series_id"].nunique() == N_SERIES and len(trust) == N_SERIES
     assert fwd["horizon"].nunique() == 14
-    return fwd, hold, trust, res, sel, intervals, tw, scope
+    assert set(fwd["series_id"]) <= set(base.index)
+    return fwd, hold, trust, res, sel, intervals, tw, scope, base
 
 
 def series_order(fwd):
@@ -190,17 +224,19 @@ def fc_row(i_series: int, measure: str) -> int:
 # ---------------------------------------------------------------------------------------------
 # sheets
 # ---------------------------------------------------------------------------------------------
-def build_forecast(wb, fwd, order, intervals):
+def build_forecast(wb, fwd, order, intervals, base):
     ws = wb.create_sheet("Forecast")
     dates = sorted(fwd["target_date"].unique())
-    title(ws, "14-day forecast by series (champion LightGBM, P10/P90)",
+    title(ws, "14-day forecast by series (champion LightGBM, P10/P90), index",
           f"Forecast origin {FORWARD_ORIGIN} (last actual). Target days {pd.Timestamp(dates[0]):%d %b} to "
-          f"{pd.Timestamp(dates[-1]):%d %b %Y}. Units = observed unit sales. Filter column D to see one measure.",
+          f"{pd.Timestamp(dates[-1]):%d %b %Y}. Series rows are an index (100 = an average training-period day); "
+          "the only unit value is the all-series 14-day total below. Filter column D to see one measure.",
           FC_TOTAL_COL)
-    ws["A3"] = (f"P10/P90 = {int(intervals['level'] * 100)}% scaled split-conformal band per day. The 14-day total of "
-                "daily P10 (or P90) is a sum of daily bounds, not a P10/P90 of the 14-day total.")
+    ws["A3"] = (f"{INDEX_NOTE} P10/P90 = {int(intervals['level'] * 100)}% scaled split-conformal band per day; the "
+                "14-day value is the mean of the daily index (for P10/P90 the mean of daily bounds, not a P10/P90 of "
+                "the 14-day total).")
     ws["A3"].font = F_NOTE
-    hdr = ["Series", "Store", "Family", "Measure"] + [pd.Timestamp(d).to_pydatetime() for d in dates] + ["14-day total"]
+    hdr = ["Series", "Store", "Family", "Measure"] + [pd.Timestamp(d).to_pydatetime() for d in dates] + ["14-day mean index"]
     header(ws, FC_HEADER_ROW, hdr)
     for j in range(14):
         ws.cell(FC_HEADER_ROW, FC_DATE_COL1 + j).number_format = "ddd dd mmm"
@@ -216,21 +252,46 @@ def build_forecast(wb, fwd, order, intervals):
             put(ws, (row, 3), r["family"])
             put(ws, (row, 4), m, font=bold)
             vals = piv[m].loc[r["series_id"], dates].tolist()
+            b = float(base[r["series_id"]])
             for j, v in enumerate(vals):
-                put(ws, (row, FC_DATE_COL1 + j), float(v), NUM, font=bold)
-            put(ws, (row, FC_TOTAL_COL), f"=SUM({first_d}{row}:{last_d}{row})", NUM, font=F_BOLD,
+                put(ws, (row, FC_DATE_COL1 + j), round(float(IX.to_index(float(v), b)), 4), DEC1, font=bold)
+            put(ws, (row, FC_TOTAL_COL), f"=AVERAGE({first_d}{row}:{last_d}{row})", DEC1, font=F_BOLD,
                 fill=FILL_TOTAL)
-    # chain totals by measure
+    # portfolio rows: equal-weighted mean of the 96 series' index per day (no unit information)
+    rng = lambda L: f"{L}${FC_FIRST}:{L}${FC_LAST}"  # noqa: E731
     for k, m in enumerate(MEASURES):
-        row = FC_TOTAL_ROW + k
-        put(ws, (row, 1), f"All {N_SERIES} series", font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+        row = FC_PORT_ROW + k
+        put(ws, (row, 1), f"All {N_SERIES} series, mean index (equal-weighted)", font=F_BOLD, fill=FILL_TOTAL,
+            border=B_TOTAL)
         for c in (2, 3):
             put(ws, (row, c), None, fill=FILL_TOTAL, border=B_TOTAL)
         put(ws, (row, 4), m, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
-        for col in range(FC_DATE_COL1, FC_TOTAL_COL + 1):
+        for col in range(FC_DATE_COL1, FC_TOTAL_COL):
             L = get_column_letter(col)
-            put(ws, (row, col), f'=SUMIF($D${FC_FIRST}:$D${FC_LAST},$D{row},{L}${FC_FIRST}:{L}${FC_LAST})', NUM,
-                font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+            put(ws, (row, col), f"=AVERAGEIF(${rng('D')},$D{row},{rng(L)})", DEC1, font=F_BOLD, fill=FILL_TOTAL,
+                border=B_TOTAL)
+        put(ws, (row, FC_TOTAL_COL), f"=AVERAGE({first_d}{row}:{last_d}{row})", DEC1, font=F_BOLD, fill=FILL_TOTAL,
+            border=B_TOTAL)
+    # the only unit value in the workbook: the portfolio (all 96 series) 14-day champion forecast total
+    row = FC_TOTAL_ROW
+    put(ws, (row, 1), f"All {N_SERIES} series, 14-day total (units)", font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (row, 4), "Forecast", font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (row, FC_TOTAL_COL), float(fwd["forecast"].sum()), NUM, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    ws.cell(row, FC_DATE_COL1, "Portfolio level only: the single unit value in this workbook.").font = F_NOTE
+    # family index-days (equal-weighted; feeds the Scenario baseline)
+    section(ws, FC_FAM_FIRST - 1, "Family champion forecast in index-days (equal-weighted mean of the 12 stores' index)")
+    ws.cell(FC_FAM_FIRST - 1, FC_DATE_COL1 + 4, INDEX_DAYS_NOTE).font = F_NOTE
+    for k, f in enumerate(sorted(order["family"].unique())):
+        row = FC_FAM_FIRST + k
+        put(ws, (row, 1), "Family mean index", font=F_BOLD, fill=FILL_TOTAL)
+        put(ws, (row, 2), None, fill=FILL_TOTAL)
+        put(ws, (row, 3), f, font=F_BOLD, fill=FILL_TOTAL)
+        put(ws, (row, 4), "Forecast", font=F_BOLD, fill=FILL_TOTAL)
+        for col in range(FC_DATE_COL1, FC_TOTAL_COL):
+            L = get_column_letter(col)
+            put(ws, (row, col), f'=AVERAGEIFS({rng(L)},${rng("C")},$C{row},${rng("D")},"Forecast")', DEC1,
+                fill=FILL_TOTAL)
+        put(ws, (row, FC_TOTAL_COL), f"=SUM({first_d}{row}:{last_d}{row})", NUM, font=F_BOLD, fill=FILL_TOTAL)
     ws.freeze_panes = ws.cell(FC_FIRST, FC_DATE_COL1)
     ws.auto_filter.ref = f"A{FC_HEADER_ROW}:{get_column_letter(FC_TOTAL_COL)}{FC_LAST}"
     widths(ws, {"A": 22, "B": 7, "C": 16, "D": 10})
@@ -242,19 +303,21 @@ def build_forecast(wb, fwd, order, intervals):
 
 MODEL_COLS = [("naive", "Naive"), ("seasonal_naive", "Seasonal naive"), ("moving_average", "Moving average"),
               ("holt_winters", "Holt-Winters"), ("lightgbm", "LightGBM")]
-ACC = {"lb_first": 5, "best_row": 12, "sys_first": 15, "fam_header": 22, "fam_first": 23, "tv_header": 34}
+ACC = {"lb_first": 5, "best_row": 12, "sys_first": 15, "fam_header": 23, "fam_first": 24, "tv_header": 35,
+       "champion_row": 21}
 ACC["lb_last"] = ACC["lb_first"] + 5
 ACC["fam_last"] = ACC["fam_first"] + 7
 
 
-def build_accuracy(wb, res, sel, hold):
+def build_accuracy(wb, res, sel, hold, base):
     ws = wb.create_sheet("Accuracy")
     title(ws, "Holdout accuracy: 6 untouched origins (27 Jun to 1 Aug 2017), 96 series x 14 days",
           "WAPE = sum|A-F| / sum A. Bias = sum(F-A) / sum A (positive = over-forecast). Results from "
           "outputs/holdout_results.json; best-model columns are live formulas.", 12)
     # leaderboard
     section(ws, 3, "Overall leaderboard (all 96 series)")
-    header(ws, 4, ["Model", "Variant", "WAPE", "Bias", "MAE (units)", "RMSE (units)", "n (series-days)",
+    header(ws, 4, ["Model", "Variant", "WAPE", "Bias", "MAE (units, all 96 series pooled)",
+                   "RMSE (units, all 96 series pooled)", "n (series-days)",
                    "Rank by WAPE"])
     for k, r in enumerate(res["leaderboard"]):
         row = ACC["lb_first"] + k
@@ -285,10 +348,18 @@ def build_accuracy(wb, res, sel, hold):
     champ_label = f"{dict(MODEL_COLS)[champ_lb['model']]} (variant {champ_lb['variant']})"
     assert all(v["model"] == champ_lb["model"] for v in sel["champions"].values())
     assert abs(champ_lb["wape"] - cs["wape"]) < 1e-9
+    b = hold["series_id"].map(base).to_numpy(float)
+    w = (hold["p90"] - hold["p10"]).to_numpy(float)
+    width_idx = float((w / b * 100).mean())
+    fpos = hold["forecast"].to_numpy(float) > 0
+    width_pct = float((w[fpos] / hold["forecast"].to_numpy(float)[fpos]).mean())
     rows = [("Champion WAPE", cs["wape"] / 100, PCT), ("Champion bias", cs["bias"] / 100, PCT2),
             ("P10-P90 coverage (target 80%)", cs["coverage"] / 100, PCT),
-            ("Mean P10-P90 width (units/day)", cs["mean_width"], DEC1), ("Series-days evaluated", cs["n"], NUM),
+            ("Mean P10-P90 width (index points per series-day)", width_idx, DEC1),
+            ("Mean P10-P90 width (% of the daily forecast, mean of row ratios)", width_pct, PCT),
+            ("Series-days evaluated", cs["n"], NUM),
             ("Champion", champ_label, None)]
+    assert ACC["sys_first"] + len(rows) - 1 == ACC["champion_row"] < ACC["fam_header"] - 1
     for k, (lab, v, f) in enumerate(rows):
         put(ws, (ACC["sys_first"] + k, 1), lab, font=F_BOLD)
         put(ws, (ACC["sys_first"] + k, 3), v, f)
@@ -355,7 +426,8 @@ def build_accuracy(wb, res, sel, hold):
 def build_exceptions(wb, trust, tw, order):
     ws = wb.create_sheet("Exceptions")
     title(ws, f"Exception queue: Trust Index at forecast origin {FORWARD_ORIGIN}",
-          "Sorted by priority = (100 - score) x the series' share of the total 14-day forecast. Work from the top.",
+          "Sorted by priority = (100 - score) x the series' share of the total 14-day forecast, computed by the "
+          "pipeline in units; only the priority rank is shown (shares would reveal unit volumes). Work from the top.",
           16)
     ws["A3"] = ("Score = SUMPRODUCT(components, frozen weights), clipped 0-100. Band: any hard flag forces Review; "
                 "else score >= 80 Accept, >= 60 Monitor, otherwise Review. The score is an index, not a probability.")
@@ -365,13 +437,18 @@ def build_exceptions(wb, trust, tw, order):
     for j, c in enumerate(comps):
         put(ws, (EX_WEIGHT_ROW, 7 + j), tw["weights"][c], "0.00", font=F_BOLD, fill=FILL_TOTAL)
     header(ws, EX_HEADER_ROW, ["Rank", "Series", "Store", "Family", "Trust score", "Band", "Accuracy", "Interval",
-                               "Stability", "Agreement", "Completeness", "Hard-flag reasons", "14-day forecast",
-                               "Priority", "Planner action", "Planner note"])
+                               "Stability", "Agreement", "Completeness", "Hard-flag reasons",
+                               "14-day forecast (mean index)", "Priority rank (pipeline)", "Planner action",
+                               "Planner note"])
     t = trust.sort_values("priority", ascending=False).reset_index(drop=True)
+    put(ws, "L4", "Review share of the summed 14-day forecast index (equal weight per series, not volume):",
+        font=F_BOLD, border=None, align=Alignment(horizontal="right"))
+    put(ws, EX_SHARE_CELL, f'=SUMIF(F{EX_FIRST}:F{EX_LAST},"Review",M{EX_FIRST}:M{EX_LAST})/SUM(M{EX_FIRST}:M{EX_LAST})',
+        PCT, font=F_BOLD, fill=FILL_TOTAL)
     fc_s = get_column_letter(FC_TOTAL_COL)
     for i, r in t.iterrows():
         row = EX_FIRST + i
-        put(ws, (row, 1), f"=RANK(N{row},$N${EX_FIRST}:$N${EX_LAST},0)", "0")
+        put(ws, (row, 1), f"=RANK(N{row},$N${EX_FIRST}:$N${EX_LAST},1)", "0")
         put(ws, (row, 2), r["series_id"], font=F_BOLD)
         put(ws, (row, 3), int(r["store_nbr"]))
         put(ws, (row, 4), r["family"])
@@ -385,8 +462,8 @@ def build_exceptions(wb, trust, tw, order):
         flags = list(r["hard_flags"]) if r["hard_flags"] is not None else []
         put(ws, (row, 12), "; ".join(describe_flags(flags)) or None, align=Alignment(wrap_text=True))
         put(ws, (row, 13), f'=SUMIFS(Forecast!${fc_s}${FC_FIRST}:${fc_s}${FC_LAST},Forecast!$A${FC_FIRST}:$A${FC_LAST},'
-                           f'B{row},Forecast!$D${FC_FIRST}:$D${FC_LAST},"Forecast")', NUM)
-        put(ws, (row, 14), f"=(100-E{row})*M{row}/SUM($M${EX_FIRST}:$M${EX_LAST})", DEC3)
+                           f'B{row},Forecast!$D${FC_FIRST}:$D${FC_LAST},"Forecast")', DEC1)
+        put(ws, (row, 14), i + 1, "0")
         put(ws, (row, 15), f'=IF(F{row}="Review","Review before release",IF(F{row}="Monitor","Spot-check",'
                            f'"Release as forecast"))')
         as_input(put(ws, (row, 16), None))
@@ -409,15 +486,16 @@ def build_exceptions(wb, trust, tw, order):
 def build_overrides(wb, order):
     ws = wb.create_sheet("Overrides")
     title(ws, "Consensus overrides: statistical forecast vs planner judgement",
-          "Type an override quantity (14-day units) in the highlighted column and pick a reason code. "
-          "Blank override = keep the statistical forecast.", 12)
-    ws["A3"] = ("Statistical forecast links to Forecast!S (14-day total). Final consensus = IF(override blank, "
+          "Type an override as a 14-day mean index (100 = the series' average training-period day) in the "
+          "highlighted column and pick a reason code. Blank override = keep the statistical forecast.", 12)
+    ws["A3"] = ("Statistical forecast links to Forecast!S (14-day mean index). Final consensus = IF(override blank, "
                 "statistical, override). Every override needs a reason code so forecast value added can be measured "
-                "later.")
+                "later. Converting an index back to units needs the series base, computed locally from the Kaggle "
+                "data (src/indexing.py).")
     ws["A3"].font = F_NOTE
-    header(ws, OV_HEADER_ROW, ["Series", "Store", "Family", "Trust band", "Statistical 14-day forecast",
-                               "Override qty (14 days)", "Reason code", "Planner comment", "Final consensus",
-                               "Difference (units)", "Difference %", "Check"])
+    header(ws, OV_HEADER_ROW, ["Series", "Store", "Family", "Trust band", "Statistical 14-day index",
+                               "Override index (14 days)", "Reason code", "Planner comment", "Final consensus index",
+                               "Difference (index points)", "Difference %", "Check"])
     dv = DataValidation(type="list", formula1='"' + ",".join(REASON_CODES) + '"', allow_blank=True,
                         showErrorMessage=True, errorTitle="Reason code",
                         error="Pick one of the five reason codes from the list.",
@@ -425,7 +503,7 @@ def build_overrides(wb, order):
                         showInputMessage=True)
     dv_qty = DataValidation(type="decimal", operator="greaterThanOrEqual", formula1="0", allow_blank=True,
                             showErrorMessage=True, errorTitle="Override quantity",
-                            error="Enter a non-negative 14-day quantity, or leave blank.")
+                            error="Enter a non-negative 14-day index, or leave blank.")
     ws.add_data_validation(dv)
     ws.add_data_validation(dv_qty)
     fc_s = get_column_letter(FC_TOTAL_COL)
@@ -436,27 +514,27 @@ def build_overrides(wb, order):
         put(ws, (row, 3), r["family"])
         put(ws, (row, 4), f"=INDEX(Exceptions!$F${EX_FIRST}:$F${EX_LAST},MATCH(A{row},Exceptions!$B${EX_FIRST}:"
                           f"$B${EX_LAST},0))", align=Alignment(horizontal="center"))
-        put(ws, (row, 5), f"=Forecast!{fc_s}{fc_row(i, 'Forecast')}", NUM)
-        as_input(put(ws, (row, 6), None, NUM))
+        put(ws, (row, 5), f"=Forecast!{fc_s}{fc_row(i, 'Forecast')}", DEC1)
+        as_input(put(ws, (row, 6), None, DEC1))
         as_input(put(ws, (row, 7), None))
         as_input(put(ws, (row, 8), None))
-        put(ws, (row, 9), f'=IF(F{row}="",E{row},F{row})', NUM, font=F_BOLD)
-        put(ws, (row, 10), f"=I{row}-E{row}", NUM)
+        put(ws, (row, 9), f'=IF(F{row}="",E{row},F{row})', DEC1, font=F_BOLD)
+        put(ws, (row, 10), f"=I{row}-E{row}", DEC1)
         put(ws, (row, 11), f"=IF(E{row}=0,0,J{row}/E{row})", PCT)
         put(ws, (row, 12), f'=IF(AND(F{row}<>"",G{row}=""),"Add a reason code",'
                            f'IF(AND(F{row}="",G{row}<>""),"Reason without override",""))')
     dv.add(f"G{OV_FIRST}:G{OV_LAST}")
     dv_qty.add(f"F{OV_FIRST}:F{OV_LAST}")
     t = OV_TOTAL_ROW
-    put(ws, (t, 1), "Total", font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (t, 1), "Mean (index)", font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
     for c in (2, 3, 4, 7, 8, 12):
         put(ws, (t, c), None, fill=FILL_TOTAL, border=B_TOTAL)
     put(ws, (t, 4), f'=COUNTIF(D{OV_FIRST}:D{OV_LAST},"Review")', '0" Review"', font=F_BOLD, fill=FILL_TOTAL,
         border=B_TOTAL)
-    put(ws, (t, 5), f"=SUM(E{OV_FIRST}:E{OV_LAST})", NUM, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (t, 5), f"=AVERAGE(E{OV_FIRST}:E{OV_LAST})", DEC1, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
     put(ws, (t, 6), f"=COUNT(F{OV_FIRST}:F{OV_LAST})", '0" overrides"', font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
-    put(ws, (t, 9), f"=SUM(I{OV_FIRST}:I{OV_LAST})", NUM, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
-    put(ws, (t, 10), f"=SUM(J{OV_FIRST}:J{OV_LAST})", NUM, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (t, 9), f"=AVERAGE(I{OV_FIRST}:I{OV_LAST})", DEC1, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
+    put(ws, (t, 10), f"=I{t}-E{t}", DEC1, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
     put(ws, (t, 11), f"=IF(E{t}=0,0,J{t}/E{t})", PCT, font=F_BOLD, fill=FILL_TOTAL, border=B_TOTAL)
     put(ws, (t, 12), f'=COUNTIF(L{OV_FIRST}:L{OV_LAST},"?*")', '0" checks open"', font=F_BOLD, fill=FILL_TOTAL,
         border=B_TOTAL)
@@ -485,26 +563,27 @@ def build_scenario(wb, families):
     section(ws, 5, f"Inputs ({ASSUMPTION_LABEL})")
     inputs = [
         ("family", "Family for the baseline", DEFAULT_FAMILY, None,
-         "Real Favorita family; the baseline below sums its forecast over the 12 stores."),
-        ("baseline", "Baseline units (14 days)",
-         f'=SUMIFS(Forecast!${fc_s}${FC_FIRST}:${fc_s}${FC_LAST},Forecast!$C${FC_FIRST}:$C${FC_LAST},{S["family"]},'
-         f'Forecast!$D${FC_FIRST}:$D${FC_LAST},"Forecast")', NUM,
-         f"Default = real 14-day champion forecast total for the chosen family across the 12 stores "
-         f"(Forecast sheet, {DEFAULT_FAMILY} by default). Type a number to overwrite."),
+         "Real Favorita family; the baseline below is its equal-weighted 12-store forecast in index-days."),
+        ("baseline", "Baseline (index-days, 14 days)",
+         f'=SUMIFS(Forecast!${fc_s}${FC_FAM_FIRST}:${fc_s}${FC_FAM_LAST},Forecast!$C${FC_FAM_FIRST}:'
+         f'$C${FC_FAM_LAST},{S["family"]})', NUM,
+         f"Default = real 14-day champion forecast for the chosen family in index-days (Forecast sheet family "
+         f"rows, {DEFAULT_FAMILY} by default; 1,400 = 14 average days for an average store). Type a number to "
+         "overwrite; supply is entered in the same units."),
         ("pct_low", "Low scenario change %", SCN_DEFAULTS["pct_low"], PCT,
          "Demonstration default (Ramadan preset in the dashboard)."),
         ("pct_base", "Base scenario change %", SCN_DEFAULTS["pct_base"], PCT, "Demonstration default."),
         ("pct_high", "High scenario change %", SCN_DEFAULTS["pct_high"], PCT, "Demonstration default."),
-        ("supply", "Available supply (units)", f"=ROUND({S['baseline']},0)", NUM,
+        ("supply", "Available supply (index-days)", f"=ROUND({S['baseline']},0)", NUM,
          "Default = baseline rounded (as in the dashboard). Type a number to overwrite."),
         ("lead", "Supplier lead time (days)", SCN_DEFAULTS["lead"], "0", "Demonstration default."),
         ("plan_date", "Planning date (today)", datetime(2017, 8, 15), DATE, "Forecast origin (last actual)."),
         ("event_date", "Event start date", datetime(2017, 9, 12), DATE,
          "Demonstration default: 28 days after the planning date."),
-        ("cu", "Cost per unit short (under-stock)", SCN_DEFAULTS["cu"], "#,##0.00",
-         "Lost margin / goodwill per unit of unmet demand."),
-        ("co", "Cost per unit left over (over-stock)", SCN_DEFAULTS["co"], "#,##0.00",
-         "Holding / markdown / waste per unsold unit."),
+        ("cu", "Cost per index-day short (under-stock)", SCN_DEFAULTS["cu"], "#,##0.00",
+         "Lost margin / goodwill per index-day of unmet demand (relative cost; only the ratio matters)."),
+        ("co", "Cost per index-day left over (over-stock)", SCN_DEFAULTS["co"], "#,##0.00",
+         "Holding / markdown / waste per unsold index-day (relative cost; only the ratio matters)."),
     ]
     for key, lab, val, fmt, note in inputs:
         ref = S[key]
@@ -530,7 +609,7 @@ def build_scenario(wb, families):
     bu, su, cu, co = (f"${S[k][0]}${S[k][1:]}" for k in ("baseline_used", "supply_used", "cu_used", "co_used"))
 
     section(ws, 29, "Scenario demand vs available supply")
-    header(ws, 30, ["Scenario", "Change %", "Demand (units)", "Shortfall", "Excess", "Coverage (supply / demand)",
+    header(ws, 30, ["Scenario", "Change %", "Demand (index-days)", "Shortfall", "Excess", "Coverage (supply / demand)",
                     "Probability weight"])
     labels = {"low": "Low", "base": "Base", "high": "High"}
     pct_ref = {"low": S["pct_low"], "base": S["pct_base"], "high": S["pct_high"]}
@@ -544,7 +623,7 @@ def build_scenario(wb, families):
         put(ws, (row, 6), f'=IF(C{row}>0,{su}/C{row},"n/a")', PCT)
         put(ws, (row, 7), f"={w_ref[s]}", "0%")
 
-    section(ws, 35, "Cost matrix: cost(plan, outcome) = under-cost x units short + over-cost x units left over")
+    section(ws, 35, "Cost matrix: cost(plan, outcome) = under-cost x index-days short + over-cost x index-days left over")
     header(ws, 36, ["Plan (order to)", "Plan qty", "If Low happens", "If Base happens", "If High happens",
                     "Expected cost", "Max regret", "Tie-break key (expected)", "Tie-break key (regret)"])
     dem = {s: f"$C${SCN_ROW[s]}" for s in SC.SCENARIOS}
@@ -595,7 +674,7 @@ def build_scenario(wb, families):
     T100 = lambda ref: f'TEXT(INT({ref}*100+0.5),"#,##0")'  # noqa: E731
     rows += [
         ("part1", "Sentence: plan",
-         f'=CONCATENATE("Plan to the ",{S["recommended"]}," scenario (",{T(S["rec_qty"])}," units): lowest expected '
+         f'=CONCATENATE("Plan to the ",{S["recommended"]}," scenario (",{T(S["rec_qty"])}," {SCN_UNIT}): lowest expected '
          f'cost (",{T(S["rec_cost"])},") with weights low/base/high = ",{T100(S["w_low"])},"/",{T100(S["w_base"])},'
          f'"/",{T100(S["w_high"])}," % and an under:over cost ratio of ",{T(S["cu_used"])},":",{T(S["co_used"])},".")',
          None),
@@ -606,9 +685,9 @@ def build_scenario(wb, families):
          f'{T(S["order_in"])}," days away."),CONCATENATE("Place the replenishment within ",{T(S["order_in"])},'
          f'" days (event start minus lead time).")))', None),
         ("part2", "Sentence: supply",
-         f'=IF({S["gap"]}>0.5,CONCATENATE("Available supply is ",{T(S["gap"])}," units short of that plan. ",'
+         f'=IF({S["gap"]}>0.5,CONCATENATE("Available supply is ",{T(S["gap"])}," {SCN_UNIT} short of that plan. ",'
          f'{S["part_timing"]}),IF({S["gap"]}<-0.5,CONCATENATE("Available supply exceeds that plan by ",'
-         f'{T("-" + S["gap"])}," units: hold or reallocate the excess rather than reorder."),'
+         f'{T("-" + S["gap"])}," {SCN_UNIT}: hold or reallocate the excess rather than reorder."),'
          f'"Available supply matches that plan: no replenishment decision is needed."))', None),
         ("part3", "Sentence: minimax note",
          f'=IF({S["minimax"]}<>{S["recommended"]},CONCATENATE(" A minimax-regret planner would choose the ",'
@@ -656,6 +735,9 @@ def build_summary(wb, res, families):
         "- Models were trained and evaluated offline in Python (frozen selection, one-time holdout). This workbook "
         "does not refit anything; forecasts and accuracy are pasted results, all planning arithmetic is live.",
         "- The Scenario sheet uses editable demonstration assumptions, not measured UAE uplift.",
+        "- Per-series forecasts are an index (100 = the series' average training-period day); family values are "
+        "index-days. The only unit value is the all-series 14-day forecast total (plus the pooled all-series "
+        "MAE/RMSE). Raw competition data is not redistributed (see About).",
     ]
     for k, t in enumerate(lines):
         c = ws.cell(5 + k, 1, t)
@@ -667,10 +749,7 @@ def build_summary(wb, res, families):
     put(ws, f"A{k0 - 1}", "Key numbers (live formulas)", font=F_SECTION, border=None)
     header(ws, k0, ["Measure", "Value", "Source"])
     fc_s = get_column_letter(FC_TOTAL_COL)
-    fcr = f"Forecast!${fc_s}${FC_FIRST}:${fc_s}${FC_LAST}"
-    fcd = f"Forecast!$D${FC_FIRST}:$D${FC_LAST}"
     exf = f"Exceptions!$F${EX_FIRST}:$F${EX_LAST}"
-    exm = f"Exceptions!$M${EX_FIRST}:$M${EX_LAST}"
     d1, d2 = get_column_letter(FC_DATE_COL1), get_column_letter(FC_DATE_COL1 + 13)
     items = [
         ("Series in scope", f"=COUNTA(Overrides!$A${OV_FIRST}:$A${OV_LAST})", "0", "Overrides"),
@@ -678,22 +757,24 @@ def build_summary(wb, res, families):
          "Forecast header"),
         ("Forecast window: last day", f"=MAX(Forecast!${d1}${FC_HEADER_ROW}:${d2}${FC_HEADER_ROW})", DATE,
          "Forecast header"),
-        ("Total 14-day forecast (units, all series)", f'=SUMIF({fcd},"Forecast",{fcr})', NUM, "Forecast"),
-        ("Champion model", f"=Accuracy!$C${ACC['sys_first'] + 5}", None, "Accuracy"),
+        ("Total 14-day forecast (units, all series)", f"=Forecast!${fc_s}${FC_TOTAL_ROW}", NUM, "Forecast"),
+        ("Mean 14-day forecast index, all series (equal-weighted)", f"=Forecast!${fc_s}${FC_PORT_ROW}", DEC1,
+         "Forecast"),
+        ("Champion model", f"=Accuracy!$C${ACC['champion_row']}", None, "Accuracy"),
         ("Holdout WAPE of the champion", f"=Accuracy!$C${ACC['sys_first']}", PCT, "Accuracy"),
         ("Holdout bias of the champion", f"=Accuracy!$C${ACC['sys_first'] + 1}", PCT2, "Accuracy"),
         ("Holdout P10-P90 coverage (target 80%)", f"=Accuracy!$C${ACC['sys_first'] + 2}", PCT, "Accuracy"),
         ("Accept forecasts (release as is)", f'=COUNTIF({exf},"Accept")', "0", "Exceptions"),
         ("Monitor forecasts (spot-check)", f'=COUNTIF({exf},"Monitor")', "0", "Exceptions"),
         ("Review exceptions (human review)", f'=COUNTIF({exf},"Review")', "0", "Exceptions"),
-        ("Share of 14-day volume in Review", f'=SUMIF({exf},"Review",{exm})/SUM({exm})', PCT, "Exceptions"),
+        ("Review share of the 14-day forecast index (equal-weighted)", f"=Exceptions!${EX_SHARE_CELL[0]}${EX_SHARE_CELL[1:]}", PCT, "Exceptions"),
         ("Holdout WAPE ratio, Review vs Accept windows", f"=Accuracy!{ACC['review_ratio']}", '0.00"x"', "Accuracy"),
         ("Overrides entered", f"=Overrides!$F${OV_TOTAL_ROW}", "0", "Overrides"),
-        ("Consensus 14-day total after overrides", f"=Overrides!$I${OV_TOTAL_ROW}", NUM, "Overrides"),
-        ("Consensus vs statistical", f"=Overrides!$K${OV_TOTAL_ROW}", PCT, "Overrides"),
+        ("Consensus mean 14-day index after overrides", f"=Overrides!$I${OV_TOTAL_ROW}", DEC1, "Overrides"),
+        ("Consensus vs statistical (mean index)", f"=Overrides!$K${OV_TOTAL_ROW}", PCT, "Overrides"),
         ("Scenario: recommended plan", f'=CONCATENATE(Scenario!{S["recommended"]}," (",Scenario!{S["family"]},")")', None,
          "Scenario"),
-        ("Scenario: order-to quantity", f"=Scenario!{S['rec_qty']}", NUM, "Scenario"),
+        ("Scenario: order-to quantity (index-days)", f"=Scenario!{S['rec_qty']}", NUM, "Scenario"),
         ("Scenario: order-by date", f"=Scenario!{S['order_by']}", DATE, "Scenario"),
     ]
     SUMMARY_ROWS.clear()
@@ -727,6 +808,10 @@ def build_about(wb, res, sel, intervals, tw, scope):
             f"Scope: {len(scope['stores'])} stores x {len(scope['families'])} families = {N_SERIES} series. Stores "
             "chosen as representative by type, cluster and city (config/scope.json), not the biggest.",
         ]),
+        ("Data licence", [LICENCE_NOTE]),
+        ("Index scale", [INDEX_NOTE + " " + INDEX_DAYS_NOTE + " The only unit values are the all-series 14-day "
+                         "forecast total (Forecast sheet, Summary) and the leaderboard MAE/RMSE pooled over all 96 "
+                         "series (Accuracy)."]),
         ("Methodology", [
             "Models: naive, seasonal naive (7-day), 28-day moving average, Holt-Winters, LightGBM (global, ratio "
             "target). Champion per family = lowest WAPE on 10 selection backtest origins, frozen before the holdout.",
@@ -745,10 +830,12 @@ def build_about(wb, res, sel, intervals, tw, scope):
         ]),
         ("Sheet guide", [
             "Summary: caveats and key numbers (formulas pulling from the other sheets).",
-            "Forecast: 14-day daily forecast with P10/P90 per series; 14-day totals are SUM formulas.",
+            "Forecast: 14-day daily forecast index with P10/P90 per series; 14-day means are AVERAGE formulas; "
+            "equal-weighted portfolio and family index rows and the all-series 14-day total (units) below.",
             "Accuracy: holdout WAPE / bias by model and family; best-model columns are INDEX/MATCH formulas.",
-            "Exceptions: Trust Index queue sorted by priority; score, band and priority are live formulas.",
-            "Overrides: enter a 14-day override and a reason code; final consensus = IF(blank, statistical, override).",
+            "Exceptions: Trust Index queue sorted by the pipeline's priority rank; score and band are live formulas.",
+            "Overrides: enter a 14-day override index and a reason code; final consensus = IF(blank, statistical, "
+            "override).",
             "Scenario: event what-if planner. Highlighted cells are inputs; everything else recalculates.",
         ]),
         ("Colour key", [
@@ -778,13 +865,13 @@ def build_about(wb, res, sel, intervals, tw, scope):
 
 
 def build(out: Path = OUT) -> Path:
-    fwd, hold, trust, res, sel, intervals, tw, scope = load()
+    fwd, hold, trust, res, sel, intervals, tw, scope, base = load()
     order = series_order(fwd)
     families = sorted(order["family"].unique())
     wb = Workbook()
     wb.active.title = "Summary"
-    build_forecast(wb, fwd, order, intervals)
-    build_accuracy(wb, res, sel, hold)
+    build_forecast(wb, fwd, order, intervals, base)
+    build_accuracy(wb, res, sel, hold, base)
     build_exceptions(wb, trust, tw, order)
     build_overrides(wb, order)
     build_scenario(wb, families)

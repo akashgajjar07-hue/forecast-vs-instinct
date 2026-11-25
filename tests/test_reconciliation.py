@@ -4,6 +4,8 @@ Every number is recomputed here from outputs/ (parquet + frozen JSON) and the pr
 nothing from src.export is imported. Published values that are rounded (documented in docs/agent_notes/export.md) are
 compared after applying the same rounding; everything else is compared at 1e-6.
 Run after scripts/08_export_dashboard.py. Needs the Kaggle-derived files, so it is marked `data`.
+Per-series values are published as an index; the index bases are recomputed here independently from the panel
+(src.indexing is not imported either).
 """
 import json
 from pathlib import Path
@@ -66,6 +68,20 @@ def ts():
 @pytest.fixture(scope="module")
 def panel():
     return pd.read_parquet(ROOT / "data" / "processed" / "panel.parquet")
+
+
+@pytest.fixture(scope="module")
+def bases(panel):
+    """Independent index bases: open-day mean sales 2015-06-01 .. day before the first selection origin."""
+    first = pd.Timestamp(json.loads((ROOT / "config" / "split_calendar.json").read_text())["stages"]["selection"][0])
+    w = panel[(panel["date"] >= "2015-06-01") & (panel["date"] < first)]
+    o = w[(w["closed"] == 0) & w["sales"].notna()]
+    series = o.groupby("series_id")["sales"].mean()
+    daily = w.groupby("date").agg(tot=("sales", "sum"), n=("sales", "count"), cl=("closed", "sum"))
+    chain = float(daily.loc[(daily["n"] == 96) & (daily["cl"] == 0), "tot"].mean())
+    pm = panel[(panel["date"] >= "2015-06-01") & (panel["date"] <= FWD) & (panel["closed"] == 0)]
+    promo = pm.groupby("series_id")["onpromotion"].mean()
+    return {"series": series, "chain": chain, "promo": promo}
 
 
 @pytest.fixture(scope="module")
@@ -137,22 +153,32 @@ def test_overview_kpis(bt, ci, ts, champ):
     assert close(k["interval_coverage"]["value"], cov) and k["interval_coverage"]["target"] == 80
 
 
-def test_overview_outlook_and_lists(panel, ts, champ):
+def test_overview_outlook_and_lists(panel, ci, ts, champ, bases):
     ov = J("overview.json")
-    ct = pd.read_parquet(OUT / "holdout" / "chain_total.parquet")
-    f = ct[ct["stage"] == "forward"].sort_values("horizon")
+    b = bases["series"]
+    f = ci[ci["stage"] == "forward"].copy()
+    f["idx"] = f["forecast"] / f["series_id"].map(b) * 100
+    fm = f.groupby("target_date")["idx"].mean()
     assert len(ov["outlook"]["forecast"]) == 14
-    for row, (_, x) in zip(ov["outlook"]["forecast"], f.iterrows()):
-        assert row["date"] == x["target_date"].strftime("%Y-%m-%d")
-        for c in ["forecast", "p10", "p90"]:
-            assert close(row[c], r(x[c], 1))
+    for row, (d, v) in zip(ov["outlook"]["forecast"], fm.sort_index().items()):
+        assert row["date"] == d.strftime("%Y-%m-%d") and close(row["mean_index"], r(v, 2))
+        assert set(row) == {"date", "mean_index"}  # no chain band on the equal-weighted index
     hist = ov["outlook"]["history"]
     assert len(hist) == 56 and hist[-1]["date"] == "2017-08-15"
     for row in hist:
         day = panel[panel["date"] == pd.Timestamp(row["date"])]
-        assert close(row["actual"], r(day["sales"].sum(), 1))
-    latest = ts[(ts["origin"] == FWD) & ts["band"].isin(["Review", "Monitor"])].sort_values("priority", ascending=False).head(8)
+        ok_ = (day["closed"] == 0) & day["sales"].notna()
+        exp = r((day["sales"] / day["series_id"].map(b) * 100).mean(), 2) if ok_.sum() == 96 else None
+        assert close(row["mean_index"], exp)
+    ct = pd.read_parquet(OUT / "holdout" / "chain_total.parquet")
+    hc = ct[(ct["stage"] == "holdout") & (ct["closed"] == 0) & ct["actual"].notna()]
+    cov = ((hc["actual"] >= hc["p10"]) & (hc["actual"] <= hc["p90"])).mean() * 100
+    assert close(ov["outlook"]["chain_band_holdout_coverage"], cov) and f"{cov:.1f} %" in ov["outlook"]["band_note"]
+    lt = ts[ts["origin"] == FWD].sort_values("priority", ascending=False).reset_index(drop=True)
+    rank = {sid: i + 1 for i, sid in enumerate(lt["series_id"])}
+    latest = lt[lt["band"].isin(["Review", "Monitor"])].head(8)
     assert [x["series_id"] for x in ov["top_exceptions"]] == list(latest["series_id"])
+    assert all(x["priority_rank"] == rank[x["series_id"]] for x in ov["top_exceptions"])
     for x, (_, t) in zip(ov["top_exceptions"], latest.iterrows()):
         assert close(x["trust_score"], r(t["score"], 2)) and x["band"] == t["band"]
     byf = pd.DataFrame(O("holdout_results.json")["by_family"]).set_index("family")
@@ -192,7 +218,7 @@ def test_hero(ci):
 
 
 # ---------------------------------------------------------------- arena
-def test_arena_holdout_overall(bt):
+def test_arena_holdout_overall(bt, bases):
     rows = {(x["model"], x["variant"]): x for x in J("arena.json")["metrics"]
             if x["stage"] == "holdout" and x["slice_type"] == "overall"}
     h = ok(bt[bt["stage"] == "holdout"])
@@ -201,11 +227,34 @@ def test_arena_holdout_overall(bt):
         x = rows[(m, v)]
         a, f = g["actual"].to_numpy(float), g["forecast"].to_numpy(float)
         assert close(x["wape"], r(wape(a, f), 4)) and close(x["bias"], r(bias(a, f), 4))
-        assert close(x["mae"], r(np.abs(a - f).mean(), 4)) and close(x["rmse"], r(np.sqrt(((a - f) ** 2).mean()), 4))
+        e = (a - f) / g["series_id"].map(bases["series"]).to_numpy(float) * 100  # index points
+        assert close(x["mae"], r(np.abs(e).mean(), 4)) and close(x["rmse"], r(np.sqrt((e ** 2).mean()), 4))
         assert x["n"] == len(g)
     lb = {(x["model"], x["variant"]): x for x in O("holdout_results.json")["leaderboard"]}
     for key, x in rows.items():
         assert close(x["wape"], r(lb[key]["wape"], 4))
+
+
+def test_arena_mae_index_every_slice(bt, bases):
+    """MAE / RMSE of every stage and slice are on the index scale (|A − F| / series base × 100)."""
+    ar = J("arena.json")
+    assert "index" in ar["mae_unit"]
+    rows = {(x["stage"], x["model"], x["variant"], x["slice_type"], x["slice_value"]): x for x in ar["metrics"]}
+    ev = ok(bt).copy()
+    ev["e"] = (ev["actual"] - ev["forecast"]) / ev["series_id"].map(bases["series"]) * 100
+    ev["horizon_bucket"] = np.where(ev["horizon"] <= 7, "1-7", "8-14")
+    for st, col in [("family", "family"), ("store", "store_nbr"), ("horizon", "horizon"), ("horizon_bucket", "horizon_bucket")]:
+        for (stage, m, v, val), g in ev.groupby(["stage", "model", "variant", col]):
+            if stage == "forward":
+                continue
+            x = rows[(stage, m, v, st, str(val))]
+            assert close(x["mae"], r(g["e"].abs().mean(), 4)) and close(x["rmse"], r(np.sqrt((g["e"] ** 2).mean()), 4))
+    g = ev[(ev["stage"] == "holdout") & (ev["model"] == "lightgbm") & (ev["variant"] == "A")].copy()
+    g["wk"] = np.where(g["horizon"] <= 7, "week1", "week2")
+    s = g.groupby(["series_id", "origin", "wk"])[["actual", "forecast"]].sum().reset_index()
+    s["e"] = (s["actual"] - s["forecast"]) / s["series_id"].map(bases["series"]) * 100
+    for wk, d in s.groupby("wk"):
+        assert close(rows[("holdout", "lightgbm", "A", "week_bucket", wk)]["mae"], r(d["e"].abs().mean(), 4))
 
 
 def test_arena_week_bucket(bt):
@@ -219,21 +268,28 @@ def test_arena_week_bucket(bt):
 
 
 # ---------------------------------------------------------------- intervals
-def test_intervals(ci):
+def test_intervals(ci, bases):
     iv = J("intervals.json")
     hc = ok(ci[ci["stage"] == "holdout"])
     inside = (hc["actual"] >= hc["p10"]) & (hc["actual"] <= hc["p90"])
+    wi = (hc["p90"] - hc["p10"]) / hc["series_id"].map(bases["series"]) * 100
     assert close(iv["holdout"]["coverage"], inside.mean() * 100)
-    assert close(iv["holdout"]["mean_width"], (hc["p90"] - hc["p10"]).mean())
+    assert close(iv["holdout"]["mean_width"], wi.mean())
+    assert close(iv["holdout"]["mean_width_pct"], (hc["p90"] - hc["p10"]).sum() / hc["forecast"].sum() * 100)
+    assert "index" in iv["width_unit"]
     for x in iv["holdout"]["by_family"]:
         m = hc["family"] == x["family"]
         assert close(x["coverage"], r(inside[m].mean() * 100, 4))
+        assert close(x["mean_width"], r(wi[m].mean(), 4))
+    for x in iv["holdout"]["by_horizon"]:
+        m = hc["horizon"] == x["horizon"]
+        assert close(x["mean_width"], r(wi[m].mean(), 4))
     assert close(iv["calibration_coverage"], O("intervals.json")["calibration_coverage_leave_one_origin_out"])
     assert close(iv["holdout"]["coverage"], O("holdout_results.json")["champion_system"]["coverage"])
 
 
 # ---------------------------------------------------------------- trust
-def test_trust(ts, ci):
+def test_trust(ts, ci, bases):
     t = J("trust.json")
     hr = O("holdout_results.json")
     for k, v in hr["trust_validation"].items():
@@ -246,26 +302,33 @@ def test_trust(ts, ci):
     assert pub == latest["band"].value_counts().to_dict()
     assert t["weights"] == O("trust_weights.json")["weights"]
     sums = window_band_forward(ci)
-    for x in t["latest"]:
+    order = latest.sort_values("priority", ascending=False)["series_id"].tolist()
+    assert [x["series_id"] for x in t["latest"]] == order
+    for i, x in enumerate(t["latest"]):
         s = sums.loc[x["series_id"]]
-        assert close(x["forecast_14d"], r(s["forecast"], 2)) and close(x["p10_14d"], r(s["p10"], 2))
-        assert close(x["p90_14d"], r(s["p90"], 2))
+        k = 100 / 14 / bases["series"][x["series_id"]]
+        assert close(x["forecast_14d_index"], r(s["forecast"] * k, 2)) and close(x["p10_14d_index"], r(s["p10"] * k, 2))
+        assert close(x["p90_14d_index"], r(s["p90"] * k, 2))
+        assert x["priority_rank"] == i + 1
     cands = {c["name"]: c["spearman"] for c in O("trust_calibration.json")["candidates"]}
     for c in t["calibration_choice"]["candidates"]:
         assert c["spearman"] == cands[c["name"]]
 
 
 # ---------------------------------------------------------------- S&OP
-def test_sop_totals_and_fva(bt, ci, ts, champ):
+def test_sop_totals_and_fva(bt, ci, ts, champ, bases):
     sop = J("sop.json")
     fwd = ci[ci["stage"] == "forward"]
     assert len(sop["rows"]) == 96
-    assert close(sum(x["stat_forecast"] for x in sop["rows"]), fwd["forecast"].sum(), 96 * 0.005 + TOL)
+    # index back to units with the independently computed bases reproduces the chain total
+    back = sum(x["stat_index"] * bases["series"][x["series_id"]] * 14 / 100 for x in sop["rows"])
+    assert abs(back / fwd["forecast"].sum() - 1) < 1e-4
     sums = window_band_forward(ci)
     for x in sop["rows"]:
-        assert close(x["stat_forecast"], r(sums.loc[x["series_id"], "forecast"], 2))
-        assert close(x["p10"], r(sums.loc[x["series_id"], "p10"], 2))
-        assert close(x["p90"], r(sums.loc[x["series_id"], "p90"], 2))
+        k = 100 / 14 / bases["series"][x["series_id"]]
+        assert close(x["stat_index"], r(sums.loc[x["series_id"], "forecast"] * k, 2))
+        assert close(x["p10_index"], r(sums.loc[x["series_id"], "p10"] * k, 2))
+        assert close(x["p90_index"], r(sums.loc[x["series_id"], "p90"] * k, 2))
     # FVA: independent re-implementation of the documented rule
     past = ok(pd.concat([champ_rows(bt, champ, "calibration"), champ_rows(bt, champ, "holdout")]))
     hold = ok(champ_rows(bt, champ, "holdout")).copy()
@@ -285,11 +348,15 @@ def test_sop_totals_and_fva(bt, ci, ts, champ):
 
 
 # ---------------------------------------------------------------- scenario
-def test_scenario_baselines(ci):
+def test_scenario_baselines(ci, bases):
+    """Index-days: 14 x equal-weighted mean of the family's series' 14-day mean forecast index."""
     sc = J("scenario.json")
-    tot = ci[ci["stage"] == "forward"].groupby("family")["forecast"].sum()
+    f = ci[ci["stage"] == "forward"].copy()
+    f["idx"] = f["forecast"] / f["series_id"].map(bases["series"]) * 100
+    m = f.groupby(["family", "series_id"])["idx"].mean().groupby("family").mean() * 14
+    assert "index-days" in sc["baseline_unit"]
     for x in sc["families"]:
-        assert close(x["baseline_14d"], tot[x["family"]])
+        assert close(x["baseline_14d"], m[x["family"]])
     assert sc["assumption_label"] == "Editable demonstration assumptions, not measured UAE uplift"
     assert sc["ecuador_analogue"] == O("eda/ecuador_analogue.json")
 
@@ -297,27 +364,37 @@ def test_scenario_baselines(ci):
 # ---------------------------------------------------------------- series sample
 @pytest.mark.parametrize("slug,sid", [("12_beverages", "12|BEVERAGES"), ("49_grocery-i", "49|GROCERY I"),
                                       ("27_bread-bakery", "27|BREAD/BAKERY"), ("53_frozen-foods", "53|FROZEN FOODS")])
-def test_series_sample(slug, sid, bt, ci, panel):
+def test_series_sample(slug, sid, bt, ci, panel, bases):
     s = json.loads((DD / "series" / f"{slug}.json").read_text())
     assert s["series_id"] == sid
+    b, pm = bases["series"][sid], bases["promo"][sid]
+    X = lambda v: None if v is None or pd.isna(v) else r(float(v) / b * 100, 1)  # noqa: E731
+    P = lambda v: r(float(v) / pm * 100, 1)  # noqa: E731
     p = panel[(panel["series_id"] == sid) & (panel["date"] >= "2017-01-01") & (panel["date"] <= "2017-08-15")].sort_values("date")
-    exp = [None if c == 1 or pd.isna(v) else r(v, 1) for v, c in zip(p["sales"], p["closed"])]
-    assert len(s["history"]["sales"]) == len(exp)
-    assert all(close(a, b) for a, b in zip(s["history"]["sales"], exp))
-    b = bt[bt["series_id"] == sid]
+    exp = [None if c == 1 or pd.isna(v) else X(v) for v, c in zip(p["sales"], p["closed"])]
+    assert len(s["history"]["index"]) == len(exp)
+    assert all(close(a, e) for a, e in zip(s["history"]["index"], exp))
+    # weekly index: Monday weeks from 2015-06-01, mean over open days
+    q = panel[(panel["series_id"] == sid) & (panel["closed"] == 0) & panel["sales"].notna()].copy()
+    q["wk"] = q["date"] - pd.to_timedelta(q["date"].dt.dayofweek, unit="D")
+    wm = q.groupby("wk")["sales"].mean()
+    assert s["history"]["week_start"][0] == "2015-06-01" and s["history"]["week_start"][-1] == "2017-08-07"
+    for w, v in zip(s["history"]["week_start"], s["history"]["weekly_index"]):
+        assert close(v, X(wm.get(pd.Timestamp(w))))
+    bb = bt[bt["series_id"] == sid]
     for win in s["holdout"]:
         o = pd.Timestamp(win["origin"])
         c = ci[(ci["series_id"] == sid) & (ci["origin"] == o)].sort_values("horizon")
         for row, (_, x) in zip(win["rows"], c.iterrows()):
-            assert close(row["actual"], r(x["actual"], 1)) and close(row["p10"], r(x["p10"], 1))
-            assert close(row["p90"], r(x["p90"], 1))
-            for m, v in row["models"].items():
-                model, var = (m[:-2], "B") if m.endswith("_B") else (m, "A")
-                y = b[(b["model"] == model) & (b["variant"] == var) & (b["origin"] == o) & (b["horizon"] == row["h"])]["forecast"]
-                assert close(v, r(y.iloc[0], 1))
-    lg = b[(b["model"] == "lightgbm") & (b["variant"] == "A") & (b["stage"] == "forward")].sort_values("horizon")
+            act = None if x["closed"] == 1 or pd.isna(x["actual"]) else x["actual"]
+            assert close(row["actual_index"], X(act)) and close(row["p10_index"], X(x["p10"]))
+            assert close(row["p90_index"], X(x["p90"])) and close(row["forecast_index"], X(x["forecast"]))
+            assert "models_index" not in row  # champion only on holdout windows
+    lg = bb[(bb["model"] == "lightgbm") & (bb["variant"] == "A") & (bb["stage"] == "forward")].sort_values("horizon")
     w0 = next(x for x in s["whatif"]["rows"] if x["scale_pct"] == 0)
-    assert all(close(a, r(v, 1)) for a, v in zip(w0["daily"], lg["forecast"]))
-    assert close(w0["forecast_total"], r(lg["forecast"].sum(), 1))
-    assert close(w0["promo_total"], r(lg["onpromotion"].sum(), 1))
-    assert [x["onpromotion"] for x in s["forward"]["rows"]] == [r(v, 1) for v in lg["onpromotion"]]
+    assert all(close(a, X(v)) for a, v in zip(w0["daily_index"], lg["forecast"]))
+    assert close(w0["forecast_index"], X(lg["forecast"].sum() / 14))
+    assert close(w0["promo_index"], P(lg["onpromotion"].mean()))
+    assert [x["promo_index"] for x in s["forward"]["rows"]] == [P(v) for v in lg["onpromotion"]]
+    fc = ci[(ci["series_id"] == sid) & (ci["stage"] == "forward")].sort_values("horizon")
+    assert [x["forecast_index"] for x in s["forward"]["rows"]] == [X(v) for v in fc["forecast"]]

@@ -122,8 +122,9 @@ def compute():
     dow = demand["dow_profile"]
     N["dow"] = dow
     N["sunday_peak"] = sum(1 for f, v in dow.items() if int(np.argmax(v)) == 6)
-    ovx = {r["family"]: r for r in extras["overview"]}
-    N["top_share_fam"], N["top_share"] = max(((f, r["volume_share"]) for f, r in ovx.items()), key=lambda t: t[1])
+    # owner rule: no family volume shares (volume-weighted); describe families by volatility instead
+    cvf = pd.DataFrame(demand["volatility"]).groupby("family")["cv"].mean()
+    N["top_cv_fam"], N["top_cv"] = cvf.idxmax(), float(cvf.max())
     N["txn_corr"] = extras["transactions"]["pooled_corr_daily"]
     N["produce_zero_before"] = 100 * extras["produce_recording_gap"]["zero_share_before_window"]["PRODUCE"]
     an = {a["family"]: a["change_pct"] for a in analogue}
@@ -213,6 +214,7 @@ def compute():
     N["above"] = 100 * (hci.actual > hci.p90).mean()
     N["width_pct"] = 100 * (hci.p90 - hci.p10).sum() / hci.forecast.sum()
     N["width"] = hr["champion_system"]["mean_width"]
+    N["width_index"] = jload("docs/data/intervals.json")["holdout"]["mean_width"]  # index points (series base = 100)
     N["cov_target"] = 100 * itv["level"]
     N["cov_loo"] = itv["calibration_coverage_leave_one_origin_out"]
     N["cov_fam"] = [(r["family"], r["coverage"]) for r in dint["holdout"]["by_family"]]
@@ -264,13 +266,19 @@ def compute():
     lat = trust["latest"]
     N["fwd_origin"] = trust["latest_origin"]
     N["fwd_counts"] = {b: sum(1 for r in lat if r["band"] == b) for b in ["Accept", "Monitor", "Review"]}
-    tot = sum(r["forecast_14d"] for r in lat)
-    N["review_vol_share"] = 100 * sum(r["forecast_14d"] for r in lat if r["band"] == "Review") / tot
+    # per-series 14-day volumes are not published (index only): use the pipeline's trust scores (units, local)
+    tf = ts[ts.origin == pd.Timestamp(N["fwd_origin"])]
+    assert len(tf) == 96 and dict(zip(tf.series_id, tf.band)) == {r["series_id"]: r["band"] for r in lat}
+    tot = float(tf.forecast_14d.sum())
+    # owner rule: no volume-weighted shares (they add equations on the private bases); share of series instead
+    N["review_series_share"] = 100 * float((tf.band == "Review").mean())
     N["fwd_total"] = ov["kpis"]["forecast_14d_total"]["value"]
-    close(tot, N["fwd_total"], 1.0, "forward total (rounded rows)")
-    hist = [h["actual"] for h in ov["outlook"]["history"]][-N["horizon"]:]
-    N["last14"] = sum(hist)
-    N["fwd_vs_last"] = 100 * (N["fwd_total"] / N["last14"] - 1)
+    close(tot, N["fwd_total"], 1e-3, "forward total")
+    # outlook = equal-weighted mean index of the 96 series: compare the forecast with the last 14 observed days
+    hist = [h["mean_index"] for h in ov["outlook"]["history"]][-N["horizon"]:]
+    fidx = [f["mean_index"] for f in ov["outlook"]["forecast"]]
+    hist = [v for v in hist if v is not None]
+    N["fwd_vs_last"] = 100 * ((sum(fidx) / len(fidx)) / (sum(hist) / len(hist)) - 1)
     N["fwd_start"], N["fwd_end"] = meta["data_window"]["forward_start"], meta["data_window"]["forward_end"]
     N["top_exc"] = ov["top_exceptions"][:5]
     N["fva"] = sop["fva"]
@@ -439,7 +447,7 @@ def deck(N):
         ("Accuracy is uneven", [P(f"Champion holdout WAPE by family runs from **{pct(N['fam_lo'][1])}** ({title_case(N['fam_lo'][0])}) "
                                   f"to **{pct(N['fam_hi'][1])}** ({title_case(N['fam_hi'][0])}). One overall accuracy number hides that spread.", 24, lh=1.45)]),
         ("Attention is finite", [P(f"At the latest origin the Trust Index sends **{N['fwd_counts']['Review']} of {N['n_series']}** series to Review. "
-                                   f"They carry **{pct(N['review_vol_share'])}** of the 14-day forecast volume.", 24, lh=1.45)]),
+                                   f"That is **{pct(N['review_series_share'])}** of the series to check first.", 24, lh=1.45)]),
     ]
     for i, (t, ps) in enumerate(cards):
         s.card(DM + i * (cw + gap), 300, cw, 300, t, ps, eyebrow=f"0{i + 1}", ts=28)
@@ -459,7 +467,7 @@ def deck(N):
                 f"Daily sales from Corporación Favorita, an Ecuadorian grocery chain (Kaggle). Modelling window "
                 f"{N['model_start']} to {N['last_actual']}; stores chosen with data from before the first selection origin only.")
     kp = [(f"{N['n_stores']}", f"stores, of {N['n_eligible']} eligible", f"{N['n_types']} store types, {N['n_cities']} cities"),
-          (f"{N['n_fam']}", "product families", f"largest: {title_case(N['top_share_fam'])}, {pct(100 * N['top_share'])} of volume"),
+          (f"{N['n_fam']}", "product families", f"most volatile: {title_case(N['top_cv_fam'])}, mean daily CV {N['top_cv']:.2f}"),
           (f"{N['n_series']}", "daily series", f"forecast {N['horizon']} days ahead from each weekly origin")]
     for i, (v, l, d) in enumerate(kp):
         s.kpi(DM, 300 + i * 232, 470, 212, v, l, d, color=[MINT, SKY, ORCHID][i], vs=58, ls=21, ds=17)
@@ -467,7 +475,7 @@ def deck(N):
     s.chart_card(DM + 494, 300, 640, 676, "Weekday sales index", "heat",
                  {"rows": [{"label": title_case(f), "v": N["dow"][f]} for f in fams], "cols": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                   "lo": min(min(v) for v in N["dow"].values()), "hi": max(max(v) for v in N["dow"].values()), "labelW": 150},
-                 fs=19, caption=f"Chain-level index, weekday mean = 1.00 (2015-06 to 2017-06, holdout excluded). Sunday is the peak for "
+                 fs=19, caption=f"Equal-weighted index over each family's 12 store series, weekday mean = 1.00 (2015-06 to 2017-06, holdout excluded). Sunday is the peak for "
                                 f"{N['sunday_peak']} of {N['n_fam']} families.", eyebrow="Demand rhythm")
     s.card(DM + 494 + 664, 300, 1728 - 494 - 664, 676, "Read this first", [
         P("**Ecuador, not the UAE.** Real historical data used as a stand-in; no Gulf numbers are claimed.", 19, bullet=True, lh=1.42, bulletColor=MONITOR),
@@ -571,7 +579,7 @@ def deck(N):
     s.kpi(DM, 532, 420, 220, f"{pct(N['below'])} / {pct(N['above'])}", "below P10 / above P90",
           "misses are close to balanced", color=SKY, vs=44, ls=20, ds=17)
     s.kpi(DM, 768, 420, 212, pct(N["width_pct"]), "mean band width vs forecast",
-          f"about {N['width']:,.0f} units per series-day", color=ORCHID, vs=48, ls=20, ds=17)
+          f"about {N['width_index']:,.0f} index points per series-day", color=ORCHID, vs=48, ls=20, ds=17)
     s.chart_card(DM + 444, 296, 640, 684, "Coverage by family", "dots",
                  {"rows": [{"label": title_case(f), "v": v, "under": v < N["cov_target"]} for f, v in sorted(N["cov_fam"], key=lambda t: t[1])],
                   "domain": [60, 95], "step": 5, "target": N["cov_target"], "targetLabel": f"Target {N['cov_target']:.0f}%", "labelW": 170}, fs=19,
@@ -641,7 +649,7 @@ def deck(N):
     s.table(DM + 20, 540, 680, 420, [{"t": "Store · family", "w": 230}, {"t": "Score", "w": 80, "align": "right"},
                                     {"t": "Band", "w": 130}, {"t": "Weakest component", "w": 240}], trows, fs=18, rowH=68)
     s.card(DM + 744, 296, 480, 684, "S&OP pack", [
-        P(f"Chain 14-day forecast **{N['fwd_total']:,.0f} units**, {pct(N['fwd_vs_last'], 1, True)} vs the last 14 observed days.", 20, bullet=True, lh=1.42),
+        P(f"Chain 14-day forecast **{N['fwd_total']:,.0f} units**; the average series is {pct(N['fwd_vs_last'], 1, True)} vs its last 14 observed days.", 20, bullet=True, lh=1.42),
         P(f"Persistent bias to discuss: **Beverages** under-forecast on calibration ({pct(N['bev_bias_cal'])}) and holdout ({pct(N['bev_bias_hold'])}).", 20, bullet=True, lh=1.42, sb=14),
         P(f"Simulated rule-based override (not a human planner) made holdout WAPE **worse**: {pct(N['fva']['champion_wape'], 2)} → "
           f"{pct(N['fva']['simulated_wape'], 2)} (FVA {sg(N['fva']['fva_pp'], 2)} pp).", 20, bullet=True, lh=1.42, sb=14, bulletColor=MONITOR),
@@ -788,7 +796,7 @@ def carousel(N):
     for i, b in enumerate(["Accept", "Monitor", "Review"]):
         s.kpi(CM + i * 316, 330, 304, 220, str(fc[b]), b, "series", color=BAND_COL[b], vs=64, ls=28, ds=22)
     s.card(CM, 580, 936, 380, None, [
-        P(f"The **{fc['Review']} Review series** carry {pct(N['review_vol_share'])} of next-14-day volume: start there.", 30, bullet=True, lh=1.4),
+        P(f"The **{fc['Review']} Review series** ({pct(N['review_series_share'])} of all series): start there.", 30, bullet=True, lh=1.4),
         P(f"A simulated rule-based override made error **worse** ({pct(N['fva']['champion_wape'], 2)} → {pct(N['fva']['simulated_wape'], 2)}).", 30, bullet=True, lh=1.4, sb=16),
         P("Override only with information the model doesn't have.", 30, lh=1.4, sb=16, color=MINT, weight=700)], pad=40)
     car_foot(s, 9)
