@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-11-25T21:04:43+00:00",
+  "frozen_hashes": {
+    "selection": "c1ae56f4b398bba949c41a24e19dbb0ff2f7d213bc95330f6b6250d93d5d4bab",
+    "intervals": "bfc2c7459b8a059169dee1a71c47f68d9dc635ad2eeaec03066cd8298b082853",
+    "trust_weights": "dc75cfb2f8a7c09ee621696a3706a7161de6974a1a28dcb17befdf898b4954b6"
+  },
+  "runtime_s": 217.4,
+  "leaderboard": [
+    {
+      "model": "lightgbm",
+      "variant": "A",
+      "wape": 12.571268407251996,
+      "bias": -0.45842069446266687,
+      "mae": 208.52474969975256,
+      "rmse": 512.4541193815965,
+      "n": 8064
+    },
+    {
+      "model": "lightgbm",
+      "variant": "B",
+      "wape": 12.748008184491974,
+      "bias": -0.803360346606227,
+      "mae": 211.45640437587866,
+      "rmse": 508.095620856003,
+      "n": 8064
+    },
+    {
+      "model": "holt_winters",
+      "variant": "A",
+      "wape": 17.23013159055568,
+      "bias": 1.6607247086993207,
+      "mae": 285.8032110062799,
+      "rmse": 606.6677856574815,
+      "n": 8064
+    },
+    {
+      "model": "seasonal_naive",
+      "variant": "A",
+      "wape": 18.72717109010102,
+      "bias": -0.026807566009215644,
+      "mae": 310.63521497123014,
+      "rmse": 701.5287281123344,
+      "n": 8064
+    },
+    {
+      "model": "moving_average",
+      "variant": "A",
+      "wape": 22.032493053930196,
+      "bias": 0.25405331749530435,
+      "mae": 365.4619367351988,
+      "rmse": 694.6711405961065,
+      "n": 8064
+    },
+    {
+      "model": "naive",
+      "variant": "A",
+      "wape": 30.177434895852397,
+      "bias": -5.1535235411912845,
+      "mae": 500.5654047294147,
+      "rmse": 938.2062151468273,
+      "n": 8064
+    }
+  ],
+  "champion_system": {
+    "wape": 12.571268407251996,
+    "bias": -0.45842069446266687,
+    "mae": 208.52474969975256,
+    "rmse": 512.4541193815965,
+    "n": 8064,
+    "coverage": 80.31994047619048,
+    "mean_width": 615.6273579146223
+  },
+  "by_family": [
+    {
+      "family": "BEVERAGES",
+      "champion": "lightgbm",
+      "holt_winters": 19.98775420229484,
+      "lightgbm": 17.741786401529865,
+      "moving_average": 25.010751713549872,
+      "naive": 30.49508565323686,
+      "seasonal_naive": 23.030872534766672,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "BREAD/BAKERY",
+      "champion": "lightgbm",
+      "holt_winters": 11.98415933700808,
+      "lightgbm": 10.918528382297096,
+      "moving_average": 18.09011066061904,
+      "naive": 21.752592758659194,
+      "seasonal_naive": 14.219379363309093,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "CLEANING",
+      "champion": "lightgbm",
+      "holt_winters": 34.31222027920438,
+      "lightgbm": 22.029682088439216,
+      "moving_average": 28.90308747264419,
+      "naive": 40.88659768928799,
+      "seasonal_naive": 35.96524578094402,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "DAIRY",
+      "champion": "lightgbm",
+      "holt_winters": 10.764199244941748,
+      "lightgbm": 9.150200425203609,
+      "moving_average": 18.05977458093834,
+      "naive": 21.221376548942544,
+      "seasonal_naive": 12.024865058573187,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "FROZEN FOODS",
+      "champion": "lightgbm",
+      "holt_winters": 25.738322694829797,
+      "lightgbm": 18.65785025172065,
+      "moving_average": 30.667911219897782,
+      "naive": 36.87094346969867,
+      "seasonal_naive": 22.972238439526333,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "GROCERY I",
+      "champion": "lightgbm",
+      "holt_winters": 15.475904745249657,
+      "lightgbm": 8.632038021164684,
+      "moving_average": 18.00558289119189,
+      "naive": 23.758118824775625,
+      "seasonal_naive": 15.900795264105696,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "PERSONAL CARE",
+      "champion": "lightgbm",
+      "holt_winters": 23.26581798762061,
+      "lightgbm": 13.882942724726933,
+      "moving_average": 27.36270544308031,
+      "naive": 36.96860581333261,
+      "seasonal_naive": 25.455578526540616,
+      "holdout_best": "lightgbm"
+    },
+    {
+      "family": "PRODUCE",
+      "champion": "lightgbm",
+      "holt_winters": 9.224342704296209,
+      "lightgbm": 8.037993472984786,
+      "moving_average": 22.455470387859215,
+      "naive": 39.56192570331054,
+      "seasonal_naive": 10.374910187909665,
+      "holdout_best": "lightgbm"
+    }
+  ],
+  "trust_validation": {
+    "n_windows": 576,
+    "spearman": -0.637,
+    "spearman_p_value": 0.0,
+    "wape_by_band": [
+      {
+        "band": "Accept",
+        "n": 225,
+        "wape": 8.93
+      },
+      {
+        "band": "Monitor",
+        "n": 228,
+        "wape": 17.3
+      },
+      {
+        "band": "Review",
+        "n": 123,
+        "wape": 17.46
+      }
+    ],
+    "error_ratio_review_vs_accept": 1.96,
+    "review_share_of_abs_error": 26.3,
+    "review_share_of_windows": 21.4,
+    "volatility_only_spearman": -0.442,
+    "beats_volatility_baseline": true,
+    "verdict": "The Trust Index ranked holdout windows well: higher scores went with lower realised error (Spearman -0.64). Review windows had 2.0x the WAPE of Accept windows. The Review band held 21% of windows and 26% of absolute error. It beat the volatility-only baseline."
+  },
+  "trust_band_counts_holdout": {
+    "Monitor": 228,
+    "Accept": 225,
+    "Review": 123
+  },
+  "results_digest": "7a7799b0bdce6f02b9066e00020a69978da2d3a558e6518378b761703aad73f8"
+}

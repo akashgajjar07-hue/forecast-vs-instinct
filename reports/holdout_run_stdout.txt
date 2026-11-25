@@ -1,0 +1,95 @@
+{
+ "leaderboard": [
+  {
+   "model": "lightgbm",
+   "variant": "A",
+   "wape": 12.571268407251996,
+   "bias": -0.45842069446266687,
+   "mae": 208.52474969975256,
+   "rmse": 512.4541193815965,
+   "n": 8064
+  },
+  {
+   "model": "lightgbm",
+   "variant": "B",
+   "wape": 12.748008184491974,
+   "bias": -0.803360346606227,
+   "mae": 211.45640437587866,
+   "rmse": 508.095620856003,
+   "n": 8064
+  },
+  {
+   "model": "holt_winters",
+   "variant": "A",
+   "wape": 17.23013159055568,
+   "bias": 1.6607247086993207,
+   "mae": 285.8032110062799,
+   "rmse": 606.6677856574815,
+   "n": 8064
+  },
+  {
+   "model": "seasonal_naive",
+   "variant": "A",
+   "wape": 18.72717109010102,
+   "bias": -0.026807566009215644,
+   "mae": 310.63521497123014,
+   "rmse": 701.5287281123344,
+   "n": 8064
+  },
+  {
+   "model": "moving_average",
+   "variant": "A",
+   "wape": 22.032493053930196,
+   "bias": 0.25405331749530435,
+   "mae": 365.4619367351988,
+   "rmse": 694.6711405961065,
+   "n": 8064
+  },
+  {
+   "model": "naive",
+   "variant": "A",
+   "wape": 30.177434895852397,
+   "bias": -5.1535235411912845,
+   "mae": 500.5654047294147,
+   "rmse": 938.2062151468273,
+   "n": 8064
+  }
+ ],
+ "champion_system": {
+  "wape": 12.571268407251996,
+  "bias": -0.45842069446266687,
+  "mae": 208.52474969975256,
+  "rmse": 512.4541193815965,
+  "n": 8064,
+  "coverage": 80.31994047619048,
+  "mean_width": 615.6273579146223
+ },
+ "trust_validation": {
+  "n_windows": 576,
+  "spearman": -0.637,
+  "spearman_p_value": 0.0,
+  "wape_by_band": [
+   {
+    "band": "Accept",
+    "n": 225,
+    "wape": 8.93
+   },
+   {
+    "band": "Monitor",
+    "n": 228,
+    "wape": 17.3
+   },
+   {
+    "band": "Review",
+    "n": 123,
+    "wape": 17.46
+   }
+  ],
+  "error_ratio_review_vs_accept": 1.96,
+  "review_share_of_abs_error": 26.3,
+  "review_share_of_windows": 21.4,
+  "volatility_only_spearman": -0.442,
+  "beats_volatility_baseline": true,
+  "verdict": "The Trust Index ranked holdout windows well: higher scores went with lower realised error (Spearman -0.64). Review windows had 2.0x the WAPE of Accept windows. The Review band held 21% of windows and 26% of absolute error. It beat the volatility-only baseline."
+ }
+}

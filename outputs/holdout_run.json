@@ -1,0 +1,9 @@
+{
+  "first_run_at": "2026-11-25T21:04:43+00:00",
+  "results_digest": "7a7799b0bdce6f02b9066e00020a69978da2d3a558e6518378b761703aad73f8",
+  "frozen_hashes": {
+    "selection": "c1ae56f4b398bba949c41a24e19dbb0ff2f7d213bc95330f6b6250d93d5d4bab",
+    "intervals": "bfc2c7459b8a059169dee1a71c47f68d9dc635ad2eeaec03066cd8298b082853",
+    "trust_weights": "dc75cfb2f8a7c09ee621696a3706a7161de6974a1a28dcb17befdf898b4954b6"
+  }
+}
